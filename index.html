@@ -607,69 +607,63 @@ sudo journalctl -u caddy -n 20 --no-pager   # บน S1: ดู source IP</scrip
     </section>
 
     <section class="block" id="wsl">
-      <h2>ซ้อมด้วย Windows (VM vs WSL2)</h2>
-      <p>ปัญหา: Windows ไม่มี <code>ufw</code>, <code>wg-quick</code>, <code>systemctl</code> แบบ Linux ทางแก้คือรัน Linux ในแต่ละเครื่องเพื่อให้ได้สภาพแวดล้อมเหมือนห้องสอบจริง</p>
+      <h2>ซ้อมด้วย VM (VirtualBox / VMware) - ตรงกับข้อสอบจริง 100%</h2>
+      <p>การสอบจริงใช้ Linux 3 เครื่องในวง LAN เดียวกัน ดังนั้นวิธีซ้อมที่ดีที่สุดและไม่มีปัญหากวนใจคือการติดตั้ง <b>Ubuntu Server</b> บน VirtualBox หรือ VMware แล้วตั้งโหมด <b>Bridged Adapter</b></p>
 
-      <div class="note ok"><p><b>วิธีที่แนะนำที่สุด (ตรงกับข้อสอบจริง 100%):</b> ใช้ <b>VirtualBox หรือ VMware ตั้งค่า Network เป็น Bridged Adapter</b></p></div>
+      <div class="note ok"><p><b>ใช้ ISO เดียวกันทั้ง 3 เครื่อง:</b> ดาวน์โหลด Ubuntu Server 22.04 หรือ 24.04 LTS ไฟล์เดียว สามารถใช้สร้าง VM ทั้ง S1, S2 และ Client ได้ทั้งหมด</p></div>
 
-      <h3>วิธีตั้งค่า VirtualBox / VMware แบบ Bridged (แนะนำ)</h3>
-      <p>ติดตั้ง Ubuntu Server บน VM ในแต่ละเครื่อง (Client, S1, S2) แล้วตั้งค่าให้เชื่อมต่อเครือข่ายเดียวกับคอมพิวเตอร์:</p>
-      <ol>
-        <li><b>ตั้งค่า Network:</b> ไปที่ <code>Settings</code> &rarr; <code>Network</code> &rarr; เปลี่ยนจาก NAT เป็น <b>Bridged Adapter</b> และเลือกการ์ด Wi-Fi หรือ LAN ของเครื่องจริง</li>
-        <li><b>ต่อวง LAN เดียวกัน:</b> ให้คอมพิวเตอร์ทุกเครื่องต่อ Wi-Fi หรือสาย LAN เดียวกัน (แนะนำให้เปิด <b>Hotspot มือถือ</b> ให้ทุกเครื่องมาเกาะ เพื่อเลี่ยงระบบบล็อกการคุยกันระหว่างเครื่องของ Wi-Fi มหาลัย/หอพัก)</li>
-        <li><b>ดู IP ของแต่ละ VM:</b> ล็อกอินเข้า VM แล้วพิมพ์ <code>hostname -I</code> จะได้เลข IP วงแลนจริงทันที (เช่น <code>192.168.43.x</code>) คุยกันได้ตรงๆ ทั้ง TCP และ UDP</li>
-        <li><b>หาชื่อ Interface (&lt;IFACE&gt;):</b> บน VM ชื่อมักจะเป็น <code>enp0s3</code> (VirtualBox) หรือ <code>ens33</code> (VMware) ให้เช็คด้วยคำสั่ง <code>ip route get &lt;S1_IP&gt;</code> ที่ S2 แล้วดูคำหลัง <code>dev</code></li>
-      </ol>
-
+      <h3>1. การตั้งค่าสร้าง VM ทั้ง 3 เครื่องใน VirtualBox</h3>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>วิธี</th><th>ทำอย่างไร</th><th>ข้อดีและข้อเสีย</th></tr></thead>
+          <thead><tr><th>เครื่อง</th><th>ชื่อใน VM</th><th>RAM / Disk</th><th>โหมด Network (สำคัญ)</th><th>หน้าที่ตามโจทย์</th></tr></thead>
           <tbody>
-            <tr><td><b>VM แบบ Bridged (แนะนำ)</b></td><td>แต่ละเครื่องลง VirtualBox หรือ Hyper-V ใช้ Ubuntu Server ตั้ง network เป็น Bridged</td><td><b>เหมือนสอบจริง 100%</b> ได้ IP LAN จริง รองรับ WireGuard (UDP) และ UFW Route ทุกฟังก์ชันครบถ้วน</td></tr>
-            <tr><td><b>WSL2 จำลอง 3 เครื่องในเครื่องเดียว</b></td><td>เปิด systemd ใน WSL แล้วใช้ <code>systemd-nspawn</code> สร้าง container 3 ตัวบน bridge เดียวกัน</td><td>ซ้อมคนเดียวได้ไม่ต้องใช้หลายเครื่อง ทำ Step 0 ถึง 7 ได้ครบ</td></tr>
-            <tr><td><b>WSL2 ต่อข้ามเครื่อง Windows (ไม่แนะนำ)</b></td><td>ใช้ WSL2 ข้ามเครื่องแล้วเปิด Mirrored หรือ Port Forward</td><td><b>ติดปัญหา:</b> Mirrored มัก Error <code>0x8007054f</code> บนไดรเวอร์ Wi-Fi บางรุ่น และโหมด NAT ทำ Port Forward ได้เฉพาะ TCP แต่ <b>WireGuard ใช้ UDP</b> ทำให้ซ้อมหมวด D ไม่ผ่าน</td></tr>
+            <tr><td><b>Server 1</b></td><td><code>S1</code></td><td>1-2 GB / 20 GB</td><td><b>Bridged Adapter</b> (เลือกการ์ด Wi-Fi/LAN เครื่องจริง)</td><td>Web Server (Caddy พอร์ต 80) + SSH</td></tr>
+            <tr><td><b>Server 2</b></td><td><code>S2</code></td><td>1-2 GB / 20 GB</td><td><b>Bridged Adapter</b> (เลือกการ์ด Wi-Fi/LAN เครื่องจริง)</td><td>WireGuard VPN (wg0) + SSH Jump</td></tr>
+            <tr><td><b>Client</b></td><td><code>Client</code></td><td>1 GB / 20 GB</td><td><b>Bridged Adapter</b> (เลือกการ์ด Wi-Fi/LAN เครื่องจริง)</td><td>เครื่องผู้ใช้ทดสอบเข้าเว็บทุกเส้นทาง</td></tr>
           </tbody>
         </table>
       </div>
 
+      <p><b>ขั้นตอนการสร้าง VM ใน VirtualBox:</b></p>
+      <ol>
+        <li>กดปุ่ม <b>New</b> (รูปดาวสีฟ้า) &rarr; ตั้งชื่อเครื่อง (<code>S1</code>, <code>S2</code>, หรือ <code>Client</code>) &rarr; เลือกไฟล์ Ubuntu Server ISO</li>
+        <li>ตรงขั้นตอนสร้าง user ให้ตั้งชื่อผู้ใช้เริ่มต้นเป็น <b><code>admin</code></b> (ตามที่โจทย์ระบุว่าบัญชีเริ่มต้นคือ admin ที่มีสิทธิ์ sudo)</li>
+        <li><b>ตั้งค่า Network ให้ต่อวง LAN จริง:</b> คลิกขวาที่ VM &rarr; <code>Settings</code> &rarr; <code>Network</code> &rarr; เปลี่ยนจาก NAT เป็น <b>Bridged Adapter</b> และเลือกการ์ดเครือข่ายที่ใช้ออกเน็ต</li>
+        <li><b>ข้อแนะนำเรื่อง Wi-Fi:</b> หากต่อ Wi-Fi หอพักหรือมหาวิทยาลัยมักมีระบบ AP Isolation บล็อกการคุยกัน ให้ต่อสาย LAN หรือเปิด <b>Hotspot มือถือ</b> ให้ทุกเครื่องมาเกาะวงเดียวกัน</li>
+      </ol>
+
+      <h3>2. คำสั่งติดตั้งแพ็กเกจสำหรับแต่ละเครื่อง (ตรงตามแล็บ p.md)</h3>
+      <p>เมื่อเปิด VM แต่ละเครื่องขึ้นมาและล็อกอินด้วย <code>admin</code> แล้ว ให้คัดลอกคำสั่งของเครื่องนั้นไปวางใน Terminal ได้ทันที:</p>
+
+      <script type="text/plain" class="code" data-title="S1 (Server 1 - Caddy Web)">sudo apt update && sudo apt install -y openssh-server caddy ufw curl</script>
+      <div class="note warn"><p><b>หมายเหตุ S1:</b> ถ้า <code>apt install caddy</code> ไม่เจอ ให้เปิด universe repo ก่อนด้วย <code>sudo add-apt-repository universe -y && sudo apt update && sudo apt install -y caddy</code></p></div>
+
+      <script type="text/plain" class="code" data-title="S2 (Server 2 - WireGuard VPN)">sudo apt update && sudo apt install -y openssh-server wireguard iptables ufw</script>
+
+      <script type="text/plain" class="code" data-title="Client (เครื่องทดสอบทุกเส้นทาง)">sudo apt update && sudo apt install -y openssh-client wireguard-tools curl netcat-openbsd nmap iputils-ping</script>
+
+      <h3>3. ตรวจสอบการเชื่อมต่อก่อนเริ่มทำโจทย์</h3>
+      <p><b>ขั้นที่ 1: ดูเลข IP ของแต่ละเครื่อง</b> พิมพ์คำสั่งนี้ในทุกเครื่อง:</p>
+      <script type="text/plain" class="code" data-title="ดู IP ทุกเครื่อง">hostname -I</script>
+      <p>จดเลข IP ที่ได้มา (เช่น <code>192.168.43.x</code>) โดยนำไปใช้แทนค่า <code>&lt;S1_IP&gt;</code> และ <code>&lt;S2_IP&gt;</code> ในโจทย์</p>
+
+      <p><b>ขั้นที่ 2: ทดสอบว่า Client คุยกับ S1 และ S2 ได้</b> ที่เครื่อง Client ให้ลอง ping:</p>
+      <script type="text/plain" class="code" data-title="ทดสอบจาก Client">ping -c 3 <S1_IP>
+ping -c 3 <S2_IP></script>
+
+      <p><b>ขั้นที่ 3: หาชื่อ Interface ของ S2</b> สำหรับใช้ทำ WireGuard NAT Masquerade (มักเป็น <code>enp0s3</code> ใน VirtualBox หรือ <code>ens33</code> ใน VMware):</p>
+      <script type="text/plain" class="code" data-title="บน S2: หาชื่อ interface">ip route get <S1_IP>    # ดูคำหลังคำว่า dev เพื่อนำไปแทนที่ <IFACE></script>
+
       <details>
-        <summary>เหตุผลทางเทคนิค: ทำไมไม่ควรใช้ WSL2 ซ้อมข้ามเครื่องคอมพิวเตอร์</summary>
+        <summary>ทำไมไม่แนะนำให้ใช้ WSL2 สำหรับการซ้อมข้ามเครื่องคอมพิวเตอร์?</summary>
         <div>
           <ul>
-            <li><b>โหมด Mirrored:</b> บน Windows 11 และไดรเวอร์ Wi-Fi หลายยี่ห้อ มักเกิดข้อผิดพลาด <code>Error: CreateInstance/CreateVm/ConfigureNetworking/0x8007054f (Failed to configure network, falling back to networkingMode None)</code> ทำให้ WSL ตัดเน็ตทิ้งทั้งหมดและไม่มี IP</li>
-            <li><b>โหมด NAT:</b> แม้จะใช้ <code>netsh interface portproxy</code> ส่งต่อพอร์ตได้ แต่ Windows รองรับเฉพาะ <b>TCP</b> เท่านั้น ในขณะที่ WireGuard (หมวด D) ต้องใช้ <b>UDP</b> ทำให้เครื่อง Client ไม่สามารถเชื่อมต่อ VPN เข้า S2 ได้</li>
+            <li><b>โหมด Mirrored:</b> มักเจอปัญหา <code>Error: 0x8007054f (Failed to configure network, falling back to networkingMode None)</code> บนไดรเวอร์ Wi-Fi หลายยี่ห้อ ทำให้ไม่มี IP และตัดเน็ตทิ้งทั้งหมด</li>
+            <li><b>โหมด NAT:</b> แม้จะใช้ <code>netsh interface portproxy</code> ส่งต่อพอร์ตได้ แต่ Windows รองรับเฉพาะ <b>TCP</b> เท่านั้น ในขณะที่ WireGuard (หมวด D) ต้องใช้ <b>UDP</b> ทำให้ Client ไม่สามารถเชื่อมต่อ VPN ข้ามเครื่องได้</li>
+            <li>การใช้ VirtualBox แบบ Bridged Adapter จึงเป็นวิธีที่เหมือนข้อสอบจริง 100% และไม่มีปัญหาจุกจิกเรื่องเน็ตเวิร์ก</li>
           </ul>
         </div>
       </details>
-
-      <details>
-        <summary>สคริปต์สำรองสำหรับ WSL2 (กรณีต้องการทดสอบโหมด Mirrored หรือล้างเครื่อง)</summary>
-        <div>
-          <div class="note warn"><p><b>คำเตือน:</b> <code>wsl --unregister Ubuntu</code> จะลบข้อมูลเดิมทั้งหมด หากมีไฟล์สำคัญให้สำรองก่อน</p></div>
-          <script type="text/plain" class="code" data-title="PowerShell (Administrator): ล้างและเปิด Mirrored">wsl --shutdown
-wsl --unregister Ubuntu
-$wslConfig = @"
-[wsl2]
-networkingMode=mirrored
-"@
-Set-Content -Path "$env:USERPROFILE\.wslconfig" -Value $wslConfig -Encoding UTF8
-Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
-wsl --install -d Ubuntu</script>
-          <script type="text/plain" class="code" data-title="ใน Ubuntu: เปิด systemd และลง SSH">sudo bash -c 'printf "[boot]\nsystemd=true\n" > /etc/wsl.conf'
-sudo apt update && sudo apt install -y openssh-server curl ufw
-sudo systemctl enable --now ssh
-hostname -I</script>
-          <script type="text/plain" class="code" data-title="PowerShell (Administrator): รีสตาร์ท">wsl --shutdown</script>
-        </div>
-      </details>
-
-      <h3>ผลที่ทดสอบจริงกับ WSL2 (24 ต.ค. 2026)</h3>
-      <ul>
-        <li>Ubuntu 26.04 บน WSL2 ที่เปิด systemd และ kernel มี WireGuard ทำโจทย์ได้ครบ: SSH hardening, Caddy, UFW, WireGuard พร้อม NAT, path A, path B, negative test (ได้ 28) และ log ที่เห็นแต่ S2_IP</li>
-        <li>container ต้องตั้งค่า 4 อย่างจึงทำงานเหมือนเครื่องจริง: ให้สิทธิ์ <code>CAP_NET_ADMIN</code> (ไม่งั้น ufw, iptables, wg ใช้ไม่ได้), ตั้ง <code>Timezone=off</code> (ไม่งั้น tzdata ติดตั้งไม่ผ่านและ dpkg ค้าง), เปิด repo universe และใส่ชื่อเครื่องใน <code>/etc/hosts</code></li>
-        <li>VM ของ WSL หยุดเองได้ เมื่อหยุด bridge กับ container จะหายและต้องสร้างใหม่</li>
-      </ul>
-      <div class="note warn"><p><b>ต่างจากเครื่องสอบจริง:</b> ชื่อ interface (ในแล็บคือ <code>host0</code> เครื่องจริงมักเป็น <code>eth0</code> หรือ <code>ens33</code>), <code>sudo</code> จะถามรหัสผ่าน, ssh ถามยืนยัน fingerprint ครั้งแรก และ <code>ufw enable</code> ถามให้พิมพ์ y ซึ่งแล็บข้ามหมด ให้ฝึกพิมพ์เองตามโจทย์ให้ชิน</p></div>
     </section>
 
     <section class="block" id="changes">

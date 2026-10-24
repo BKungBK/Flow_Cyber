@@ -619,6 +619,21 @@ sudo journalctl -u caddy -n 20 --no-pager   # บน S1: ดู source IP</scrip
           </tbody>
         </table>
       </div>
+      <h3>ตั้งค่า WSL สำหรับแล็บ (ไม่ลบข้อมูลเดิม)</h3>
+      <p>ทำครั้งเดียวตามลำดับ ถ้าขั้นไหนขึ้นข้อความ error ให้หยุดและอ่านข้อความก่อนทำต่อ</p>
+      <div class="note warn"><p><b>สำรองก่อนเสมอ:</b> ถ้ามี Ubuntu อยู่แล้วและไม่อยากเสียข้อมูล ให้สำรองก่อนทุกครั้ง ไม่ต้องลบ distro เดิมเพื่อทำแล็บ</p></div>
+      <script type="text/plain" class="code" data-title="PowerShell (Administrator): สำรอง Ubuntu เดิม (ทางเลือก)">wsl --export Ubuntu "$env:USERPROFILE\ubuntu-backup.tar"</script>
+      <script type="text/plain" class="code" data-title="Ubuntu: เปิด systemd และติดตั้ง SSH กับ UFW">sudo bash -c 'printf "[boot]\nsystemd=true\n" > /etc/wsl.conf'
+sudo apt update && sudo apt install -y openssh-server ufw curl
+sudo systemctl enable --now ssh
+hostname -I</script>
+      <script type="text/plain" class="code" data-title="PowerShell (Administrator): รีสตาร์ท WSL เพื่อให้ systemd ทำงาน">wsl --shutdown</script>
+      <script type="text/plain" class="code" data-title="PowerShell (Administrator): เปิดเฉพาะพอร์ตแล็บ ในเครือข่ายส่วนตัวเท่านั้น">New-NetFirewallRule -DisplayName "Lab SSH 22" -Direction Inbound -Protocol TCP -LocalPort 22 -Profile Private -RemoteAddress LocalSubnet -Action Allow
+New-NetFirewallRule -DisplayName "Lab HTTP 80" -Direction Inbound -Protocol TCP -LocalPort 80 -Profile Private -RemoteAddress LocalSubnet -Action Allow
+New-NetFirewallRule -DisplayName "Lab WireGuard" -Direction Inbound -Protocol UDP -LocalPort <WG_PORT> -Profile Private -RemoteAddress LocalSubnet -Action Allow</script>
+      <p>กฎ firewall ข้างบนเปิดเฉพาะพอร์ตที่โจทย์ใช้ ในเครือข่ายส่วนตัวและ IP วงเดียวกันเท่านั้น ไม่เปิดพอร์ตทั้งหมด ถ้าไม่ต้องการ ให้ลบด้วย <code>Remove-NetFirewallRule -DisplayName "Lab SSH 22"</code> (และชื่ออื่น)</p>
+      <div class="note warn"><p><b>ยังไม่ได้ทดสอบ:</b> โหมด mirrored ไม่ได้อยู่ในขั้นตอนนี้ ขั้นตอนนี้ตั้ง systemd และ firewall เท่านั้น ถ้าต้องการเชื่อมต่อจากเครื่องอื่นในวงแลน ให้ทดสอบด้วย <code>ping</code> ก่อน และถ้า Wi-Fi บล็อก ให้ใช้ hotspot</p></div>
+
       <h3>ผลที่ทดสอบจริงกับ WSL2 (24 ต.ค. 2026)</h3>
       <ul>
         <li>Ubuntu 26.04 บน WSL2 ที่เปิด systemd และ kernel มี WireGuard ทำโจทย์ได้ครบ: SSH hardening, Caddy, UFW, WireGuard พร้อม NAT, path A, path B, negative test (ได้ 28) และ log ที่เห็นแต่ S2_IP</li>

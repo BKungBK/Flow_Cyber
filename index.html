@@ -607,57 +607,61 @@ sudo journalctl -u caddy -n 20 --no-pager   # บน S1: ดู source IP</scrip
     </section>
 
     <section class="block" id="wsl">
-      <h2>ซ้อมด้วย Windows 3 เครื่อง</h2>
-      <p>ปัญหา: Windows ไม่มี <code>ufw</code>, <code>wg-quick</code>, <code>systemctl</code> แบบ Linux ทางแก้คือรัน Linux ในแต่ละเครื่อง แล้วให้ได้ IP ใน LAN จริง</p>
+      <h2>ซ้อมด้วย Windows (VM vs WSL2)</h2>
+      <p>ปัญหา: Windows ไม่มี <code>ufw</code>, <code>wg-quick</code>, <code>systemctl</code> แบบ Linux ทางแก้คือรัน Linux ในแต่ละเครื่องเพื่อให้ได้สภาพแวดล้อมเหมือนห้องสอบจริง</p>
+
+      <div class="note ok"><p><b>วิธีที่แนะนำที่สุด (ตรงกับข้อสอบจริง 100%):</b> ใช้ <b>VirtualBox หรือ VMware ตั้งค่า Network เป็น Bridged Adapter</b></p></div>
+
+      <h3>วิธีตั้งค่า VirtualBox / VMware แบบ Bridged (แนะนำ)</h3>
+      <p>ติดตั้ง Ubuntu Server บน VM ในแต่ละเครื่อง (Client, S1, S2) แล้วตั้งค่าให้เชื่อมต่อเครือข่ายเดียวกับคอมพิวเตอร์:</p>
+      <ol>
+        <li><b>ตั้งค่า Network:</b> ไปที่ <code>Settings</code> &rarr; <code>Network</code> &rarr; เปลี่ยนจาก NAT เป็น <b>Bridged Adapter</b> และเลือกการ์ด Wi-Fi หรือ LAN ของเครื่องจริง</li>
+        <li><b>ต่อวง LAN เดียวกัน:</b> ให้คอมพิวเตอร์ทุกเครื่องต่อ Wi-Fi หรือสาย LAN เดียวกัน (แนะนำให้เปิด <b>Hotspot มือถือ</b> ให้ทุกเครื่องมาเกาะ เพื่อเลี่ยงระบบบล็อกการคุยกันระหว่างเครื่องของ Wi-Fi มหาลัย/หอพัก)</li>
+        <li><b>ดู IP ของแต่ละ VM:</b> ล็อกอินเข้า VM แล้วพิมพ์ <code>hostname -I</code> จะได้เลข IP วงแลนจริงทันที (เช่น <code>192.168.43.x</code>) คุยกันได้ตรงๆ ทั้ง TCP และ UDP</li>
+        <li><b>หาชื่อ Interface (&lt;IFACE&gt;):</b> บน VM ชื่อมักจะเป็น <code>enp0s3</code> (VirtualBox) หรือ <code>ens33</code> (VMware) ให้เช็คด้วยคำสั่ง <code>ip route get &lt;S1_IP&gt;</code> ที่ S2 แล้วดูคำหลัง <code>dev</code></li>
+      </ol>
+
       <div class="tablewrap">
         <table>
           <thead><tr><th>วิธี</th><th>ทำอย่างไร</th><th>ข้อดีและข้อเสีย</th></tr></thead>
           <tbody>
-            <tr><td>VM แบบ Bridged (แนะนำ)</td><td>แต่ละเครื่องลง VirtualBox หรือ Hyper-V ใช้ Ubuntu Server ตั้ง network เป็น Bridged หรือ External switch</td><td>ได้ IP LAN จริง ใกล้โจทย์สุด กิน RAM ประมาณ 1-2 GB ต่อเครื่อง</td></tr>
-            <tr><td>WSL2 เครื่องเดียว จำลอง 3 เครื่อง (ทดสอบแล้ว)</td><td>เปิด systemd ใน WSL แล้วใช้ <code>systemd-nspawn</code> สร้าง container 3 ตัวบน bridge เดียวกัน</td><td>ไม่ต้องลง VM ทำโจทย์ Step 0 ถึง 7 ได้ครบ ต่างจากเครื่องจริงบางจุด (ดูด้านล่าง)</td></tr>
-            <tr><td>WSL2 แบบ mirrored (ยังไม่ได้ทดสอบ)</td><td>Windows 11 22H2 ขึ้นไป ตั้ง <code>networkingMode=mirrored</code> ให้ WSL ใช้ IP เดียวกับ Windows</td><td>ไม่ได้ลองรัน WireGuard, UFW และ forwarding ด้วยวิธีนี้ ถ้าไม่ทำงานให้ใช้ VM</td></tr>
+            <tr><td><b>VM แบบ Bridged (แนะนำ)</b></td><td>แต่ละเครื่องลง VirtualBox หรือ Hyper-V ใช้ Ubuntu Server ตั้ง network เป็น Bridged</td><td><b>เหมือนสอบจริง 100%</b> ได้ IP LAN จริง รองรับ WireGuard (UDP) และ UFW Route ทุกฟังก์ชันครบถ้วน</td></tr>
+            <tr><td><b>WSL2 จำลอง 3 เครื่องในเครื่องเดียว</b></td><td>เปิด systemd ใน WSL แล้วใช้ <code>systemd-nspawn</code> สร้าง container 3 ตัวบน bridge เดียวกัน</td><td>ซ้อมคนเดียวได้ไม่ต้องใช้หลายเครื่อง ทำ Step 0 ถึง 7 ได้ครบ</td></tr>
+            <tr><td><b>WSL2 ต่อข้ามเครื่อง Windows (ไม่แนะนำ)</b></td><td>ใช้ WSL2 ข้ามเครื่องแล้วเปิด Mirrored หรือ Port Forward</td><td><b>ติดปัญหา:</b> Mirrored มัก Error <code>0x8007054f</code> บนไดรเวอร์ Wi-Fi บางรุ่น และโหมด NAT ทำ Port Forward ได้เฉพาะ TCP แต่ <b>WireGuard ใช้ UDP</b> ทำให้ซ้อมหมวด D ไม่ผ่าน</td></tr>
           </tbody>
         </table>
       </div>
-      <h3>สคริปต์ล้างและติดตั้ง WSL2 ใหม่ (Mirrored Mode พร้อมซ้อมข้ามเครื่อง)</h3>
-      <p>แก้ปัญหาคนละเครื่องหา WSL ไม่เจอ โดยล้าง Ubuntu เดิม และตั้งค่าให้ WSL2 ใช้ IP เดียวกับ Wi-Fi/LAN ของเครื่อง Windows ผ่านโหมด <code>mirrored</code> (สำหรับ Windows 11 22H2 ขึ้นไป)</p>
 
-      <div class="note warn"><p><b>คำเตือน:</b> คำสั่ง <code>wsl --unregister Ubuntu</code> จะลบข้อมูลทั้งหมดใน Ubuntu เดิมอย่างถาวร หากมีไฟล์สำคัญให้สำรองไว้ก่อนด้วย <code>wsl --export Ubuntu "$env:USERPROFILE\ubuntu-backup.tar"</code></p></div>
+      <details>
+        <summary>เหตุผลทางเทคนิค: ทำไมไม่ควรใช้ WSL2 ซ้อมข้ามเครื่องคอมพิวเตอร์</summary>
+        <div>
+          <ul>
+            <li><b>โหมด Mirrored:</b> บน Windows 11 และไดรเวอร์ Wi-Fi หลายยี่ห้อ มักเกิดข้อผิดพลาด <code>Error: CreateInstance/CreateVm/ConfigureNetworking/0x8007054f (Failed to configure network, falling back to networkingMode None)</code> ทำให้ WSL ตัดเน็ตทิ้งทั้งหมดและไม่มี IP</li>
+            <li><b>โหมด NAT:</b> แม้จะใช้ <code>netsh interface portproxy</code> ส่งต่อพอร์ตได้ แต่ Windows รองรับเฉพาะ <b>TCP</b> เท่านั้น ในขณะที่ WireGuard (หมวด D) ต้องใช้ <b>UDP</b> ทำให้เครื่อง Client ไม่สามารถเชื่อมต่อ VPN เข้า S2 ได้</li>
+          </ul>
+        </div>
+      </details>
 
-      <script type="text/plain" class="code" data-title="ขั้นที่ 1: PowerShell (Administrator) - ล้างและติดตั้งใหม่พร้อม Mirrored">[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-wsl --shutdown
+      <details>
+        <summary>สคริปต์สำรองสำหรับ WSL2 (กรณีต้องการทดสอบโหมด Mirrored หรือล้างเครื่อง)</summary>
+        <div>
+          <div class="note warn"><p><b>คำเตือน:</b> <code>wsl --unregister Ubuntu</code> จะลบข้อมูลเดิมทั้งหมด หากมีไฟล์สำคัญให้สำรองก่อน</p></div>
+          <script type="text/plain" class="code" data-title="PowerShell (Administrator): ล้างและเปิด Mirrored">wsl --shutdown
 wsl --unregister Ubuntu
-
 $wslConfig = @"
 [wsl2]
 networkingMode=mirrored
-dnsTunneling=true
-firewall=true
-autoProxy=true
 "@
 Set-Content -Path "$env:USERPROFILE\.wslconfig" -Value $wslConfig -Encoding UTF8
-
 Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
-netsh advfirewall firewall add rule name="WSL SSH 22" dir=in action=allow protocol=TCP localport=22
-netsh advfirewall firewall add rule name="WSL Caddy 80" dir=in action=allow protocol=TCP localport=80
-netsh advfirewall firewall add rule name="WSL WireGuard UDP" dir=in action=allow protocol=UDP localport=1-65535
-
 wsl --install -d Ubuntu</script>
-
-      <p>เมื่อติดตั้ง Ubuntu เสร็จแล้ว ให้สร้าง username/password ตามปกติ แล้วรันคำสั่งด้านล่างนี้ใน Terminal ของ Ubuntu เพื่อเปิดใช้งาน <code>systemd</code> และ Service SSH:</p>
-
-      <script type="text/plain" class="code" data-title="ขั้นที่ 2: ใน Ubuntu - เปิด systemd และเริ่ม Service SSH">sudo bash -c 'cat > /etc/wsl.conf << EOF
-[boot]
-systemd=true
-EOF'
+          <script type="text/plain" class="code" data-title="ใน Ubuntu: เปิด systemd และลง SSH">sudo bash -c 'printf "[boot]\nsystemd=true\n" > /etc/wsl.conf'
 sudo apt update && sudo apt install -y openssh-server curl ufw
 sudo systemctl enable --now ssh
-echo "IP ของเครื่องนี้คือ: $(hostname -I)"</script>
-
-      <script type="text/plain" class="code" data-title="ขั้นที่ 3: PowerShell (Administrator) - รีสตาร์ท WSL ให้ Mirrored มีผล">wsl --shutdown</script>
-
-      <div class="note ok"><p><b>หลังจากเปิด Ubuntu ขึ้นมาใหม่:</b> เมื่อพิมพ์ <code>hostname -I</code> จะได้เลข IP วงเดียวกับ Wi-Fi/LAN ของเครื่อง Windows (เช่น <code>192.168.x.x</code>) เครื่อง Client จะสามารถ <code>ssh-copy-id</code> และยิงหาพอร์ต 22/80/WireGuard ข้ามเครื่องได้ทันที</p></div>
-      <p><b>ข้อควรระวัง:</b> หากต่อ Wi-Fi หอพักหรือมหาวิทยาลัยมักมี AP Isolation บล็อกการคุยกัน ให้ต่อสาย LAN เดียวกัน หรือแชร์ Hotspot จากมือถือให้ทุกเครื่องต่อวงเดียวกัน แล้วทดสอบด้วย <code>ping</code> ก่อนเริ่มซ้อม</p>
+hostname -I</script>
+          <script type="text/plain" class="code" data-title="PowerShell (Administrator): รีสตาร์ท">wsl --shutdown</script>
+        </div>
+      </details>
 
       <h3>ผลที่ทดสอบจริงกับ WSL2 (24 ต.ค. 2026)</h3>
       <ul>
@@ -666,7 +670,7 @@ echo "IP ของเครื่องนี้คือ: $(hostname -I)"</scri
         <li>VM ของ WSL หยุดเองได้ เมื่อหยุด bridge กับ container จะหายและต้องสร้างใหม่</li>
       </ul>
       <div class="note warn"><p><b>ต่างจากเครื่องสอบจริง:</b> ชื่อ interface (ในแล็บคือ <code>host0</code> เครื่องจริงมักเป็น <code>eth0</code> หรือ <code>ens33</code>), <code>sudo</code> จะถามรหัสผ่าน, ssh ถามยืนยัน fingerprint ครั้งแรก และ <code>ufw enable</code> ถามให้พิมพ์ y ซึ่งแล็บข้ามหมด ให้ฝึกพิมพ์เองตามโจทย์ให้ชิน</p></div>
-      </section>
+    </section>
 
     <section class="block" id="changes">
       <h2>แก้อะไรไปบ้างจากไฟล์เดิม</h2>

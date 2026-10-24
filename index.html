@@ -1,0 +1,1017 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>สอบปฏิบัติ Secure Infrastructure</title>
+<meta name="description" content="โจทย์สอบปฏิบัติ Secure Infrastructure พร้อมแอนิเมชันอธิบายการเชื่อมต่อ Client, S1, S2 และขั้นตอนทีละ step ที่ทดสอบแล้ว">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #e9eff2;
+  --paper: #f8fbfc;
+  --ink: #0d1b26;
+  --ink2: #3b4f5c;
+  --muted: #5f7482;
+  --line: #c7d4db;
+  --soft: #dbe5ea;
+  --a: #1b4de0;
+  --b: #9a5a00;
+  --red: #b92b21;
+  --ok: #12704a;
+  --font: "Bai Jamjuree", "Leelawadee UI", "Noto Sans Thai", Tahoma, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --st-bg: #0f2230;
+  --st-grid: rgba(255,255,255,.045);
+  --st-node: #163446;
+  --st-line: #4a6b7d;
+  --st-ink: #e8f1f6;
+  --st-mute: #93aebd;
+  --st-a: #6a96ff;
+  --st-b: #f2b43c;
+  --st-red: #ff7466;
+  --st-ok: #5ed6a2;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #08121a;
+    --paper: #0e1b25;
+    --ink: #e8f0f4;
+    --ink2: #b8c8d1;
+    --muted: #8aa0ad;
+    --line: #26394a;
+    --soft: #15283a;
+    --a: #86a8ff;
+    --b: #f2b43c;
+    --red: #ff8277;
+    --ok: #5ed6a2;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 1.0625rem/1.85 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+a { color: var(--a); }
+code, pre, kbd { font-family: var(--mono); }
+.skip { position: absolute; left: 12px; top: -60px; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 6px; z-index: 50; }
+.skip:focus { top: 12px; }
+:focus-visible { outline: 3px solid var(--a); outline-offset: 2px; }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1240px; margin: 0 auto; padding: 44px 24px 26px; }
+.hero h1 { margin: 0; font-weight: 700; font-size: clamp(2.1rem, 5.2vw, 3.6rem); line-height: 1.12; letter-spacing: -0.015em; }
+.hero .sub { margin: 12px 0 0; max-width: 62ch; color: var(--ink2); font-size: 1.125rem; }
+.hero .verdict { margin: 18px 0 0; max-width: 70ch; padding-left: 16px; border-left: 4px solid var(--a); font-weight: 500; }
+.hero .stamp { margin: 14px 0 0; color: var(--muted); font-size: .9rem; }
+
+/* ---------- stage ---------- */
+.stage-wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+.stage { background: var(--st-bg); color: var(--st-ink); border-radius: 18px; overflow: hidden; box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 20px 50px -28px rgba(8,18,26,.7); }
+.stage:focus-visible { outline-offset: 4px; }
+.scene-scroll { overflow-x: auto; }
+.scene { display: block; width: 100%; min-width: 860px; height: auto; }
+.scene text { font-family: var(--font); }
+.scene .mono { font-family: var(--mono); }
+.hint-scroll { display: none; margin: 0; padding: 6px 16px 0; font-size: .8rem; color: var(--st-mute); }
+
+.caption { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 8px 36px; padding: 22px 28px 12px; border-top: 1px solid rgba(255,255,255,.08); min-height: 168px; }
+.caption h2 { margin: 0 0 6px; font-weight: 600; font-size: 1.35rem; line-height: 1.35; }
+.caption p { margin: 0; color: #c4d5de; font-size: 1rem; line-height: 1.8; }
+.caption .cmd { align-self: start; margin: 0; padding: 12px 14px; background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; font: 400 .88rem/1.7 var(--mono); color: #dcebf3; white-space: pre-wrap; overflow-wrap: anywhere; }
+.caption .cmd:empty { display: none; }
+.caption .which { grid-column: 1 / -1; margin: 0; font-size: .85rem; color: var(--st-mute); }
+.caption .which button { background: none; border: 0; padding: 0; color: var(--st-a); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+.chips { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; padding: 8px 20px 4px; }
+.chip { --p: 0; position: relative; padding: 8px 6px 10px; border: 0; border-radius: 8px; background: rgba(255,255,255,.05); color: #c4d5de; font: 500 .84rem/1.25 var(--font); cursor: pointer; text-align: center; overflow: hidden; }
+.chip::after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--p) * 100%); background: var(--st-a); }
+.chip:hover { background: rgba(255,255,255,.1); }
+.chip[aria-current="true"] { background: rgba(106,150,255,.2); color: #fff; }
+.chip:focus-visible { outline-color: #fff; }
+
+.deck { display: flex; align-items: center; gap: 14px; padding: 8px 20px 18px; }
+.deck button { background: rgba(255,255,255,.08); border: 0; color: var(--st-ink); border-radius: 8px; height: 38px; min-width: 38px; padding: 0 12px; font: 500 .9rem var(--font); cursor: pointer; }
+.deck button:hover { background: rgba(255,255,255,.16); }
+.deck .time { font: 400 .84rem var(--mono); color: var(--st-mute); min-width: 92px; }
+.deck input[type=range] { flex: 1; accent-color: var(--st-a); min-width: 0; }
+.deck select { background: rgba(255,255,255,.08); color: var(--st-ink); border: 0; border-radius: 8px; height: 38px; padding: 0 8px; font: 400 .9rem var(--font); }
+.deck select option { color: #0d1b26; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 0 28px 20px; margin: 0; list-style: none; font-size: .86rem; color: var(--st-mute); }
+.legend li { display: inline-flex; align-items: center; gap: 8px; }
+.legend i { width: 22px; height: 4px; border-radius: 2px; display: inline-block; }
+
+/* ---------- layout ---------- */
+.layout { max-width: 1240px; margin: 0 auto; padding: 48px 24px 80px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; align-items: start; }
+.toc { position: sticky; top: 24px; font-size: .95rem; line-height: 1.5; }
+.toc strong { display: block; margin-bottom: 8px; font-weight: 600; color: var(--muted); font-size: .88rem; }
+.toc a { display: block; padding: 5px 0 5px 12px; border-left: 2px solid var(--line); color: var(--ink2); text-decoration: none; }
+.toc a:hover { color: var(--ink); border-left-color: var(--a); }
+.toc a[aria-current="true"] { color: var(--ink); border-left-color: var(--a); font-weight: 600; }
+.toc .sep { height: 10px; }
+
+main { min-width: 0; max-width: 820px; }
+section.block { padding: 8px 0 44px; border-top: 1px solid var(--line); margin-top: 8px; }
+section.block:first-child { border-top: 0; margin-top: 0; }
+section.block > h2 { margin: 26px 0 8px; font-weight: 700; font-size: 1.75rem; line-height: 1.3; letter-spacing: -0.005em; }
+section.block h3 { margin: 28px 0 6px; font-weight: 600; font-size: 1.15rem; }
+section.block p { margin: 0 0 12px; max-width: 70ch; }
+section.block ul, section.block ol { margin: 0 0 14px; padding-left: 1.3em; max-width: 70ch; }
+section.block li + li { margin-top: 4px; }
+.note { margin: 14px 0; padding: 12px 16px; border-left: 4px solid var(--a); background: var(--soft); border-radius: 0 8px 8px 0; max-width: 70ch; }
+.note.warn { border-left-color: var(--b); }
+.note.err { border-left-color: var(--red); }
+.note.ok { border-left-color: var(--ok); }
+.note > :last-child { margin-bottom: 0; }
+.note b { font-weight: 600; }
+
+.tablewrap { overflow-x: auto; margin: 12px 0 18px; }
+table { width: 100%; border-collapse: collapse; font-size: .98rem; }
+th { text-align: left; font-weight: 600; color: var(--muted); padding: 8px 12px; border-bottom: 2px solid var(--line); white-space: nowrap; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tfoot td { font-weight: 600; border-bottom: 0; }
+td code, p code, li code, dd code { font-size: .88em; background: var(--soft); padding: 1px 6px; border-radius: 4px; }
+
+/* ---------- code ---------- */
+figure.code { margin: 12px 0 16px; background: #0f2230; border-radius: 10px; overflow: hidden; max-width: 100%; }
+figure.code figcaption { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 8px 6px 14px; color: #93aebd; font: 500 .84rem var(--font); border-bottom: 1px solid rgba(255,255,255,.08); }
+figure.code button { background: rgba(255,255,255,.08); border: 0; color: #e8f1f6; border-radius: 6px; padding: 4px 10px; font: 500 .8rem var(--font); cursor: pointer; }
+figure.code button:hover { background: rgba(255,255,255,.18); }
+figure.code pre { margin: 0; padding: 14px 16px; overflow-x: auto; font-size: .88rem; line-height: 1.7; color: #dcebf3; tab-size: 2; }
+figure.code .ph { color: #f2b43c; }
+figure.code .cm { color: #7f9bac; }
+
+/* ---------- steps ---------- */
+.step { padding: 10px 0 40px; border-top: 1px solid var(--line); margin-top: 8px; }
+.step-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; margin: 22px 0 10px; }
+.step-head .n { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: var(--ink); color: var(--paper); font-weight: 700; font-size: 1.35rem; }
+.step-head h2 { margin: 0; font-weight: 700; font-size: 1.5rem; line-height: 1.3; }
+.jump { background: none; border: 1px solid var(--line); color: var(--a); border-radius: 8px; padding: 6px 12px; font: 500 .88rem var(--font); cursor: pointer; white-space: nowrap; }
+.jump:hover { border-color: var(--a); }
+.why { color: var(--ink2); }
+dl.expect { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 6px 16px; margin: 12px 0 0; max-width: 72ch; }
+dl.expect dt { font-weight: 600; }
+dl.expect dt.good { color: var(--ok); }
+dl.expect dt.bad { color: var(--red); }
+dl.expect dd { margin: 0; }
+
+details { margin: 10px 0; max-width: 72ch; border-top: 1px solid var(--line); }
+details:last-of-type { border-bottom: 1px solid var(--line); }
+summary { cursor: pointer; padding: 10px 0; font-weight: 500; }
+details > div { padding: 0 0 12px; color: var(--ink2); }
+details > div > :last-child { margin-bottom: 0; }
+
+.changes { counter-reset: c; list-style: none; padding: 0 !important; }
+.changes li { counter-increment: c; position: relative; padding-left: 40px; margin: 0 0 12px; }
+.changes li::before { content: counter(c); position: absolute; left: 0; top: 1px; width: 26px; height: 26px; border-radius: 50%; background: var(--soft); display: grid; place-items: center; font-size: .85rem; font-weight: 600; }
+
+footer { max-width: 1240px; margin: 0 auto; padding: 0 24px 56px; color: var(--muted); font-size: .9rem; }
+
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .toc { position: static; display: flex; gap: 6px 14px; flex-wrap: wrap; align-items: center; }
+  .toc strong { width: 100%; margin: 0; }
+  .toc a { border-left: 0; border-bottom: 2px solid var(--line); padding: 3px 0; }
+  .toc .sep { display: none; }
+}
+@media (max-width: 760px) {
+  .hero { padding: 28px 16px 18px; }
+  .stage-wrap, .layout, footer { padding-left: 16px; padding-right: 16px; }
+  .hint-scroll { display: block; }
+  .caption { grid-template-columns: minmax(0, 1fr); padding: 18px 18px 8px; }
+  .chips { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px 12px 4px; }
+  .deck { flex-wrap: wrap; padding: 8px 12px 14px; }
+  .deck input[type=range] { order: 5; flex-basis: 100%; }
+  .step-head { grid-template-columns: auto minmax(0, 1fr); }
+  .step-head .jump { grid-column: 1 / -1; justify-self: start; }
+  dl.expect { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  dl.expect dd { margin-bottom: 8px; }
+  section.block > h2 { font-size: 1.5rem; }
+}
+@media print {
+  .stage-wrap, .toc, .jump, figure.code button, .skip { display: none !important; }
+  .layout { display: block; padding: 0; }
+  body { background: #fff; color: #000; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<header class="hero">
+  <h1>สอบปฏิบัติ Secure Infrastructure</h1>
+  <p class="sub">ต้องทำอะไร, ข้อมูลไหลอย่างไร, และขั้นตอนทีละ step (กลุ่มละ 4 คน, 30 คะแนน, 120 นาที)</p>
+  <p class="verdict">ต้องตั้ง 3 เครื่อง (Client, S1, S2) ให้ Client เข้าเว็บ S1 ได้ 2 ทาง (WireGuard และ SSH SOCKS) และเข้าไม่ได้ถ้าไม่ใช้ทั้งสองทาง</p>
+  <p class="stamp">ฉบับแก้ไข: ขั้นตอนที่ 1 ถึง 7 รันครบบนแล็บ 3 เครื่องใน WSL เมื่อ 24 ต.ค. 2026 ด้วยสคริปต์ที่เทียบเท่าคำสั่งในหน้านี้ (ไม่ได้พิมพ์ทีละคำสั่งด้วยมือ) ยกเว้นคำสั่งติดตั้ง Caddy จาก repo ทางการและการตั้ง WSL แบบ mirrored ที่ยังไม่ได้ทดสอบ</p>
+</header>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage" tabindex="0" aria-label="แอนิเมชันอธิบายการเชื่อมต่อ กด Space เพื่อหยุดหรือเล่น ลูกศรซ้ายขวาเพื่อข้ามช่วง">
+    <p class="hint-scroll">เลื่อนแผนภาพไปทางซ้ายขวาได้ หรือดูคำอธิบายด้านล่าง</p>
+    <div class="scene-scroll">
+      <svg class="scene" id="scene" viewBox="0 0 1200 640" role="img" aria-labelledby="sceneTitle">
+        <title id="sceneTitle">แผนภาพ Client, S2 และ S1 บน LAN เดียวกัน แสดงลำดับการล็อก SSH, ตั้ง UFW, ต่อตรงไม่ผ่าน, WireGuard, SSH SOCKS และ log</title>
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M40 0H0V40" fill="none" stroke="var(--st-grid)" stroke-width="1"/>
+          </pattern>
+          <clipPath id="clipA"><rect id="clipArect" x="250" y="236" width="0" height="64"/></clipPath>
+          <clipPath id="clipB"><rect id="clipBrect" x="250" y="306" width="0" height="64"/></clipPath>
+          <path id="c2s1" d="M145 380V500H1055V380"/>
+          <path id="c2s2" d="M145 380V500H600V400"/>
+          <path id="s22s1" d="M600 330V500H1055V380"/>
+          <path id="laneA" d="M250 268H490"/>
+          <path id="laneB" d="M250 338H490"/>
+        </defs>
+        <rect width="1200" height="640" fill="url(#grid)"/>
+        <g id="world">
+          <!-- LAN bus -->
+          <g fill="none" stroke="var(--st-line)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path id="bus" d="M145 380V500H1055V380" pathLength="1" stroke-dasharray="1 1"/>
+            <path id="bus2" d="M600 400V500" pathLength="1" stroke-dasharray="1 1"/>
+          </g>
+          <text id="lanLabel" x="360" y="486" fill="var(--st-mute)" font-size="15">LAN เดียวกัน</text>
+          <g id="ipLabels" fill="var(--st-mute)" font-size="14" text-anchor="middle" class="mono">
+            <text x="145" y="528">Client_IP</text>
+            <text x="600" y="528">S2_IP</text>
+            <text x="1055" y="528">S1_IP</text>
+          </g>
+
+          <!-- tubes -->
+          <g id="tubeA">
+            <g clip-path="url(#clipA)">
+              <path d="M250 268H490" stroke="var(--st-a)" stroke-opacity=".22" stroke-width="30" stroke-linecap="round"/>
+              <path id="tubeAdash" d="M250 268H490" stroke="var(--st-a)" stroke-width="3" stroke-dasharray="10 12" fill="none"/>
+            </g>
+            <path id="hsA" d="M250 268H490" stroke="var(--st-a)" stroke-width="36" stroke-linecap="round" fill="none" opacity="0"/>
+          </g>
+          <g id="tubeB">
+            <g clip-path="url(#clipB)">
+              <path d="M250 338H490" stroke="var(--st-b)" stroke-opacity=".22" stroke-width="30" stroke-linecap="round"/>
+              <path id="tubeBdash" d="M250 338H490" stroke="var(--st-b)" stroke-width="3" stroke-dasharray="3 9" fill="none"/>
+            </g>
+          </g>
+
+          <!-- nodes -->
+          <g id="n-client" class="mono">
+            <rect x="-105" y="-80" width="210" height="160" rx="14" fill="var(--st-node)" stroke="var(--st-line)" stroke-width="2"/>
+            <text x="0" y="-38" text-anchor="middle" fill="var(--st-ink)" font-size="28" font-weight="700" style="font-family:var(--font)">Client</text>
+            <text x="0" y="-10" text-anchor="middle" fill="var(--st-mute)" font-size="16" style="font-family:var(--font)">เครื่องที่ใช้ทดสอบ</text>
+            <text x="0" y="26" text-anchor="middle" fill="var(--st-ink)" font-size="14">ssh, curl, wg</text>
+          </g>
+          <g id="n-s2" class="mono">
+            <rect x="-110" y="-100" width="220" height="200" rx="14" fill="var(--st-node)" stroke="var(--st-line)" stroke-width="2"/>
+            <text x="0" y="-52" text-anchor="middle" fill="var(--st-ink)" font-size="28" font-weight="700" style="font-family:var(--font)">S2</text>
+            <text x="0" y="-24" text-anchor="middle" fill="var(--st-mute)" font-size="16" style="font-family:var(--font)">ด่านกลาง: VPN และ jump</text>
+            <text x="0" y="14" text-anchor="middle" fill="var(--st-ink)" font-size="14">WireGuard, UFW, NAT</text>
+          </g>
+          <g id="n-s1" class="mono">
+            <rect x="-105" y="-80" width="210" height="160" rx="14" fill="var(--st-node)" stroke="var(--st-line)" stroke-width="2"/>
+            <text x="0" y="-38" text-anchor="middle" fill="var(--st-ink)" font-size="28" font-weight="700" style="font-family:var(--font)">S1</text>
+            <text x="0" y="-10" text-anchor="middle" fill="var(--st-mute)" font-size="16" style="font-family:var(--font)">เว็บ static (Caddy)</text>
+            <g id="page" transform="translate(0 38)">
+              <rect x="-46" y="-17" width="92" height="34" rx="6" fill="#0f2230" stroke="var(--st-ok)" stroke-width="2"/>
+              <text x="0" y="5" text-anchor="middle" fill="var(--st-ok)" font-size="14" font-weight="500">TOKEN</text>
+            </g>
+          </g>
+
+          <!-- locks -->
+          <g id="lockS2" transform="translate(692 214)"><rect x="-9" y="-2" width="18" height="14" rx="3" fill="var(--st-ok)"/><path d="M-5 -2V-7a5 5 0 0 1 10 0V-2" fill="none" stroke="var(--st-ok)" stroke-width="3"/></g>
+          <g id="lockS1" transform="translate(1147 240)"><rect x="-9" y="-2" width="18" height="14" rx="3" fill="var(--st-ok)"/><path d="M-5 -2V-7a5 5 0 0 1 10 0V-2" fill="none" stroke="var(--st-ok)" stroke-width="3"/></g>
+
+          <!-- UFW gate on the S1 leg -->
+          <g id="gate" transform="translate(1055 420)">
+            <rect id="gateBar" x="-48" y="-6" width="96" height="12" rx="6" fill="var(--st-mute)"/>
+            <text id="gateText" x="62" y="6" fill="var(--st-ink)" font-size="16" font-weight="600">UFW</text>
+          </g>
+
+          <g id="packets"></g>
+          <g id="tags"></g>
+        </g>
+      </svg>
+    </div>
+
+    <div class="caption" aria-live="polite">
+      <div><h2 id="capTitle"></h2><p id="capBody"></p></div>
+      <pre class="cmd" id="capCmd"></pre>
+      <p class="which"><span id="capSteps"></span> <button type="button" id="capJump" hidden>ดูหัวข้อนี้ในโจทย์</button></p>
+    </div>
+
+    <div class="chips" id="chips" role="group" aria-label="ช่วงของแอนิเมชัน"></div>
+
+    <div class="deck">
+      <button type="button" id="play" aria-label="หยุดหรือเล่น">หยุด</button>
+      <span class="time" id="time">0:00 / 0:40</span>
+      <input type="range" id="scrub" min="0" max="40" step="0.01" value="0" aria-label="ตำแหน่งเวลา">
+      <label class="sr" for="speed" style="position:absolute;left:-9999px">ความเร็ว</label>
+      <select id="speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="1.5">1.5x</option></select>
+    </div>
+
+    <ul class="legend">
+      <li><i style="background:var(--st-a)"></i>WireGuard (path A)</li>
+      <li><i style="background:var(--st-b)"></i>SSH SOCKS (path B)</li>
+      <li><i style="background:var(--st-red)"></i>ถูก UFW ทิ้งหรือปฏิเสธ</li>
+      <li><i style="background:var(--st-ok)"></i>ผ่านได้ถูกต้อง</li>
+    </ul>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="toc" aria-label="สารบัญ">
+    <strong>ในหน้านี้</strong>
+    <a href="#todo">ต้องทำอะไรบ้าง</a>
+    <a href="#words">คำศัพท์ที่ต้องรู้</a>
+    <a href="#packages">แพ็กเกจ</a>
+    <div class="sep"></div>
+    <a href="#step1">1 สร้าง user และ key</a>
+    <a href="#step2">2 ล็อก SSH</a>
+    <a href="#step3">3 S1: Caddy</a>
+    <a href="#step4">4 S2: WireGuard</a>
+    <a href="#step5">5 UFW</a>
+    <a href="#step6">6 Client config</a>
+    <a href="#step7">7 ทดสอบ</a>
+    <div class="sep"></div>
+    <a href="#careful">สิ่งที่ต้องระวัง</a>
+    <a href="#qa">เตรียมตอบรายบุคคล</a>
+    <a href="#wsl">ซ้อมด้วย Windows</a>
+    <a href="#changes">แก้อะไรไปบ้าง</a>
+  </nav>
+
+  <main id="main">
+    <section class="block" id="todo">
+      <h2>ต้องทำอะไรบ้าง</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>งาน</th><th>เครื่อง</th><th>ทำอะไร</th><th class="num">คะแนน</th></tr></thead>
+          <tbody>
+            <tr><td>SSH hardening</td><td>S1, S2</td><td>user <code>peter</code>, ใช้ key อย่างเดียว, ปิด password และ root</td><td class="num">6</td></tr>
+            <tr><td>Caddy</td><td>S1</td><td>เว็บ static พอร์ต 80 แสดงเลขกลุ่ม, ชื่อ 4 คน และ TOKEN</td><td class="num">4</td></tr>
+            <tr><td>UFW</td><td>S1, S2</td><td>default deny, เปิดเฉพาะที่จำเป็น</td><td class="num">8</td></tr>
+            <tr><td>WireGuard</td><td>S2, Client</td><td>wg0 <code>10.8.0.1/24</code> ที่ S2, peer <code>10.8.0.2</code> ที่ Client</td><td class="num">6</td></tr>
+            <tr><td>ทดสอบเข้าเว็บ</td><td>Client</td><td>path A, path B, negative test, ดู log</td><td class="num">6</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="3">รวม</td><td class="num">30</td></tr></tfoot>
+        </table>
+      </div>
+      <p>ค่าที่ต้องแทนในคำสั่งทุกขั้น: <code>&lt;S1_IP&gt;</code> และ <code>&lt;S2_IP&gt;</code> คือ IP ของสองเครื่อง, <code>&lt;WG_PORT&gt;</code> คือพอร์ต UDP ของ WireGuard (ห้ามใช้ 51820 ถ้าอาจารย์ไม่ระบุ), <code>&lt;IFACE&gt;</code> คือชื่อ interface ของ S2 ที่ออกไปหา S1 และ <code>&lt;TOKEN&gt;</code> คือค่าที่อาจารย์ให้</p>
+      <p>หา <code>&lt;IFACE&gt;</code> ด้วย <code>ip route get &lt;S1_IP&gt;</code> ที่ S2 แล้วดูคำที่ตามหลัง <code>dev</code> (บนเครื่องจริงมักเป็น <code>eth0</code> หรือ <code>ens33</code> ไม่ใช่ชื่อที่เห็นในตัวอย่าง)</p>
+    </section>
+
+    <section class="block" id="words">
+      <h2>คำศัพท์ที่ต้องรู้</h2>
+      <dl class="expect" style="grid-template-columns: 11em minmax(0,1fr)">
+        <dt>UFW</dt><dd>firewall ของ Ubuntu ตั้ง default deny แล้วเปิดเฉพาะพอร์ตที่ต้องใช้ แพ็กเก็ตที่ไม่ตรงกฎจะถูกทิ้งเงียบ ๆ (drop) ผู้ส่งจึงเห็นแค่ timeout</dd>
+        <dt>WireGuard</dt><dd>VPN ระดับเครือข่าย สร้าง interface <code>wg0</code> ทั้งสองฝั่ง แลกกันเฉพาะ public key ทราฟฟิกทุกชนิดที่ route เข้า <code>wg0</code> จะถูกเข้ารหัสส่งผ่าน UDP</dd>
+        <dt>NAT (masquerade)</dt><dd>S2 เปลี่ยนที่อยู่ต้นทางของแพ็กเก็ตจาก <code>10.8.0.2</code> เป็น IP ของ S2 เอง ก่อนส่งต่อไป S1 ทำให้ S1 ไม่ต้องรู้จักวง 10.8.0.0/24 และไม่ต้องแก้ route</dd>
+        <dt>ip_forward</dt><dd>ตัวเปิดให้ Linux ส่งต่อแพ็กเก็ตระหว่าง interface ถ้าปิด S2 จะรับแพ็กเก็ตจาก <code>wg0</code> แล้วไม่ส่งต่อไป S1</dd>
+        <dt>SSH SOCKS (<code>ssh -D</code>)</dt><dd>เปิด proxy ที่ <code>127.0.0.1:1080</code> บน Client โปรแกรมที่ตั้งให้ใช้ proxy (เช่น <code>curl --socks5-hostname</code>) จะส่งคำขอผ่านการเชื่อมต่อ SSH ไปที่ S2 แล้ว S2 เป็นฝ่ายต่อไป S1</dd>
+        <dt>handshake</dt><dd>การจับมือเข้ารหัสระหว่างสอง peer ของ WireGuard ถ้า <code>wg show</code> ไม่มีเวลา handshake ล่าสุด แปลว่าอุโมงค์ยังไม่ติด</dd>
+      </dl>
+    </section>
+
+    <section class="block" id="packages">
+      <h2>แพ็กเกจที่ต้องลงบนเครื่อง Linux</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>เครื่อง</th><th>แพ็กเกจ</th><th>ใช้ทำอะไร</th></tr></thead>
+          <tbody>
+            <tr><td>S1</td><td><code>openssh-server</code></td><td>SSH</td></tr>
+            <tr><td>S1</td><td><code>caddy</code></td><td>เว็บ static</td></tr>
+            <tr><td>S1</td><td><code>ufw</code></td><td>firewall</td></tr>
+            <tr><td>S1</td><td><code>curl</code></td><td>ทดสอบเว็บจากในเครื่อง</td></tr>
+            <tr><td>S2</td><td><code>openssh-server</code></td><td>SSH และ jump (<code>ssh -D</code>)</td></tr>
+            <tr><td>S2</td><td><code>wireguard</code></td><td>VPN server (<code>wg</code>, <code>wg-quick</code>)</td></tr>
+            <tr><td>S2</td><td><code>iptables</code></td><td>NAT masquerade ใน PostUp</td></tr>
+            <tr><td>S2</td><td><code>ufw</code></td><td>firewall</td></tr>
+            <tr><td>Client</td><td><code>openssh-client</code></td><td><code>ssh</code>, <code>ssh-keygen</code>, <code>ssh-copy-id</code></td></tr>
+            <tr><td>Client</td><td><code>wireguard-tools</code></td><td><code>wg</code>, <code>wg-quick</code></td></tr>
+            <tr><td>Client</td><td><code>curl</code></td><td>ทดสอบ path A, B</td></tr>
+            <tr><td>Client</td><td><code>netcat-openbsd</code>, <code>nmap</code></td><td>สแกนพอร์ตตอนตรวจ C8</td></tr>
+            <tr><td>Client</td><td><code>iputils-ping</code></td><td><code>ping</code> ใน path A (เพิ่มใหม่ ติดตั้งขั้นต่ำอาจไม่มี)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <script type="text/plain" class="code" data-title="S1">sudo apt update && sudo apt install -y openssh-server caddy ufw curl</script>
+      <script type="text/plain" class="code" data-title="S2">sudo apt update && sudo apt install -y openssh-server wireguard iptables ufw</script>
+      <script type="text/plain" class="code" data-title="Client">sudo apt update && sudo apt install -y openssh-client wireguard-tools curl netcat-openbsd nmap iputils-ping</script>
+      <div class="note ok"><p><b>ทดสอบแล้ว:</b> บน Ubuntu 26.04 คำสั่งทั้งสามบล็อกติดตั้งได้ตรง ๆ รวมถึง <code>caddy</code> (เวอร์ชัน 2.6.2 อยู่ใน repo universe) ถ้าเครื่องสอบปิด universe หรือ <code>apt install caddy</code> ไม่เจอแพ็กเกจ ให้ใช้ repo ทางการของ Caddy ด้านล่าง</p></div>
+      <details>
+        <summary>ติดตั้ง Caddy จาก repo ทางการ (ยังไม่ได้ทดสอบ)</summary>
+        <div>
+          <p>คำสั่งนี้ยกมาจากเอกสารของ Caddy ไม่ได้ลองรันจริง ใช้เฉพาะเมื่อ apt ไม่เจอแพ็กเกจ</p>
+          <script type="text/plain" class="code" data-title="S1: ติดตั้ง Caddy จาก repo ทางการ">sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install -y caddy</script>
+        </div>
+      </details>
+    </section>
+
+    <!-- ===================== STEP 1 ===================== -->
+    <section class="step" id="step1" data-phase="1">
+      <div class="step-head"><span class="n">1</span><h2>สร้าง user และ key (ทำก่อนล็อก SSH)</h2><button type="button" class="jump" data-jump="1">ดูในแอนิเมชัน</button></div>
+      <p class="why">ตอนล็อก SSH เราจะปิดรหัสผ่านและอนุญาตเฉพาะ <code>peter</code> ถ้ายังไม่มี user นี้และ key ก่อนล็อก จะเข้าเครื่องไม่ได้อีก จึงต้องสร้างและทดสอบก่อนเสมอ</p>
+      <script type="text/plain" class="code" data-title="S1 และ S2 (login ด้วย admin)">sudo adduser peter
+sudo usermod -aG sudo peter</script>
+      <script type="text/plain" class="code" data-title="Client">ssh-keygen -t ed25519
+ssh-copy-id -i ~/.ssh/id_ed25519.pub peter@<S1_IP>
+ssh-copy-id -i ~/.ssh/id_ed25519.pub peter@<S2_IP>
+ssh peter@<S1_IP>    # ต้องเข้าได้ด้วย key</script>
+      <dl class="expect">
+        <dt class="good">ต้องเห็น</dt><dd>ครั้งแรกที่ต่อ ssh จะถามยืนยัน fingerprint ให้พิมพ์ <code>yes</code> ส่วน <code>ssh-copy-id</code> จะขอรหัสของ <code>peter</code> เป็นครั้งสุดท้าย หลังจากนั้น <code>ssh peter@&lt;S1_IP&gt;</code> ต้องเข้าได้โดยไม่ถามรหัส</dd>
+        <dt class="bad">พลาดบ่อย</dt><dd>ถ้าเคยสร้าง key แล้ว <code>ssh-keygen</code> จะถามว่าจะเขียนทับไหม ให้ตอบ <code>n</code> แล้วใช้ key เดิม และห้ามข้ามขั้น <code>ssh peter@...</code> เพราะต้องรู้ว่า key ใช้ได้จริงก่อนไปขั้นล็อก</dd>
+      </dl>
+    </section>
+
+    <!-- ===================== STEP 2 ===================== -->
+    <section class="step" id="step2" data-phase="1">
+      <div class="step-head"><span class="n">2</span><h2>ล็อก SSH (S1 และ S2)</h2><button type="button" class="jump" data-jump="1">ดูในแอนิเมชัน</button></div>
+      <p class="why">เป้าหมายคือเข้าเครื่องได้ด้วย key ของ <code>peter</code> เท่านั้น ใครเดารหัสผ่านหรือลองเข้าเป็น root จะถูกปฏิเสธตั้งแต่ด่านแรก</p>
+      <script type="text/plain" class="code" data-title="S1 และ S2">sudo tee /etc/ssh/sshd_config.d/00-hardening.conf <<'EOF'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+PermitRootLogin no
+AllowUsers peter
+EOF
+sudo sshd -t && sudo systemctl restart ssh
+sudo sshd -T | grep -Ei 'passwordauth|kbdinteractive|pubkeyauth|permitrootlogin|allowusers'</script>
+      <script type="text/plain" class="code" data-title="Client: ตรวจจากภายนอก (เปิดหน้าต่างใหม่)">ssh peter@<S1_IP>                                   # ต้องเข้าได้
+ssh -o PubkeyAuthentication=no -o PreferredAuthentications=password peter@<S1_IP>   # ต้อง Permission denied
+ssh root@<S1_IP>                                    # ต้อง Permission denied</script>
+      <dl class="expect">
+        <dt class="good">ต้องเห็น</dt><dd><code>sshd -T</code> แสดง <code>passwordauthentication no</code>, <code>kbdinteractiveauthentication no</code>, <code>pubkeyauthentication yes</code>, <code>permitrootlogin no</code>, <code>allowusers peter</code></dd>
+        <dt class="bad">พลาดบ่อย</dt><dd>ตั้งชื่อไฟล์ขึ้นต้น <code>00-</code> เพื่อให้ชนะ <code>50-cloud-init.conf</code> ที่อาจเปิด password ไว้ และ <code>AllowUsers peter</code> ทำให้ <code>admin</code> เข้าผ่าน SSH ไม่ได้อีก จึงต้องเปิด session เดิมค้างไว้ตอนทดสอบ โดน reset VM หัก 2 คะแนน</dd>
+      </dl>
+    </section>
+
+    <!-- ===================== STEP 3 ===================== -->
+    <section class="step" id="step3" data-phase="2">
+      <div class="step-head"><span class="n">3</span><h2>S1: Caddy</h2><button type="button" class="jump" data-jump="2">ดูในแอนิเมชัน</button></div>
+      <p class="why">S1 เป็นเว็บที่ต้องปกป้อง หน้าเว็บมีเลขกลุ่ม ชื่อสมาชิก และ TOKEN ซึ่งเป็นหลักฐานว่าเราเข้าถึง S1 ได้จริง</p>
+      <script type="text/plain" class="code" data-title="S1">sudo apt update && sudo apt install -y caddy
+sudo mkdir -p /var/www/exam
+sudo tee /var/www/exam/index.html <<'EOF'
+<h1>กลุ่ม X</h1>
+<p>สมาชิก: A, B, C, D</p>
+<p>TOKEN: <TOKEN></p>
+EOF
+sudo tee /etc/caddy/Caddyfile <<'EOF'
+:80 {
+    root * /var/www/exam
+    file_server
+    log
+}
+EOF
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl enable --now caddy && sudo systemctl reload caddy
+ss -tlnp | grep :80</script>
+      <dl class="expect">
+        <dt class="good">ต้องเห็น</dt><dd><code>ss</code> แสดงว่า <code>caddy</code> ฟังที่ <code>:80</code> และ <code>curl -s http://127.0.0.1/</code> ที่ S1 ต้องเห็นหน้ามี TOKEN (ทดสอบในเครื่องก่อนเปิด UFW ได้)</dd>
+        <dt class="bad">พลาดบ่อย</dt><dd>ห้าม <code>chmod 777</code> ดู log ด้วย <code>sudo journalctl -u caddy -f</code> ข้อความ "Caddyfile input is not formatted" เป็นแค่คำเตือนเรื่องการจัดบรรทัด ไม่กระทบการทำงาน</dd>
+      </dl>
+    </section>
+
+    <!-- ===================== STEP 4 ===================== -->
+    <section class="step" id="step4" data-phase="4">
+      <div class="step-head"><span class="n">4</span><h2>S2: WireGuard</h2><button type="button" class="jump" data-jump="4">ดูในแอนิเมชัน</button></div>
+      <p class="why">ใช้วิธี NAT (ง่ายสุด S1 ไม่ต้องแก้ route) แต่ละฝั่งสร้าง key คู่ของตัวเอง แล้วส่งให้อีกฝั่งเฉพาะ public key ห้ามโชว์หรือคัดลอก private key ข้ามเครื่อง</p>
+      <script type="text/plain" class="code" data-title="Client: สร้าง key และส่งเฉพาะ public key ไป S2">mkdir -p ~/wg && cd ~/wg
+umask 077
+wg genkey | tee client.key | wg pubkey > client.pub
+scp client.pub peter@<S2_IP>:~/</script>
+      <script type="text/plain" class="code" data-title="S2 (login เป็น peter): สร้าง key และ config">sudo apt install -y wireguard
+umask 077
+wg genkey | sudo tee /etc/wireguard/server.key | wg pubkey | sudo tee /etc/wireguard/server.pub
+IFACE=$(ip route get <S1_IP> | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}')
+SERVER_KEY=$(sudo cat /etc/wireguard/server.key)
+CLIENT_PUB=$(cat ~/client.pub)
+sudo tee /etc/wireguard/wg0.conf > /dev/null <<EOF
+[Interface]
+Address = 10.8.0.1/24
+ListenPort = <WG_PORT>
+PrivateKey = $SERVER_KEY
+PostUp = iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -d <S1_IP> -o $IFACE -j MASQUERADE
+PostDown = iptables -t nat -D POSTROUTING -s 10.8.0.0/24 -d <S1_IP> -o $IFACE -j MASQUERADE
+
+[Peer]
+PublicKey = $CLIENT_PUB
+AllowedIPs = 10.8.0.2/32
+EOF
+sudo chmod 600 /etc/wireguard/wg0.conf
+echo 'net.ipv4.ip_forward=1' | sudo tee /etc/sysctl.d/99-wg.conf
+sudo sysctl --system
+sudo systemctl enable --now wg-quick@wg0
+sudo cp /etc/wireguard/server.pub ~/server.pub && sudo chown "$USER": ~/server.pub   # ไว้ให้ Client ดึงไปใช้ใน Step 6</script>
+      <dl class="expect">
+        <dt class="good">ต้องเห็น</dt><dd><code>sudo wg show</code> มี interface <code>wg0</code> พร้อม listening port ตรงกับ <code>&lt;WG_PORT&gt;</code>, <code>ip link show wg0</code> เจอ interface และ <code>sudo iptables -t nat -S POSTROUTING</code> มีกฎ <code>MASQUERADE</code> ของ <code>10.8.0.0/24</code> ไป <code>&lt;S1_IP&gt;</code></dd>
+        <dt class="bad">พลาดบ่อย</dt><dd>ใช้ <code>&lt;&lt;EOF</code> แบบไม่มีเครื่องหมายคำพูด เพื่อให้ shell แทนค่า <code>$SERVER_KEY</code>, <code>$CLIENT_PUB</code>, <code>$IFACE</code> ให้เอง (ไม่ต้องก๊อปคีย์ด้วยมือ) และใส่ <code>&gt; /dev/null</code> เพื่อไม่ให้ <code>tee</code> พิมพ์ private key ขึ้นจอ ห้ามใช้พอร์ต 51820 ถ้าอาจารย์ไม่ระบุ</dd>
+      </dl>
+    </section>
+
+    <!-- ===================== STEP 5 ===================== -->
+    <section class="step" id="step5" data-phase="2">
+      <div class="step-head"><span class="n">5</span><h2>UFW (ตั้ง 22 ก่อน enable เสมอ)</h2><button type="button" class="jump" data-jump="3">ดูในแอนิเมชัน</button></div>
+      <p class="why">UFW เปลี่ยนสองเครื่องให้ปฏิเสธทุกอย่างที่ไม่อนุญาต S1 เปิดพอร์ต 80 ให้ S2 เท่านั้น ส่วน S2 เปิด SSH, พอร์ต WireGuard และอนุญาตส่งต่อทราฟฟิกจาก <code>wg0</code> ไป S1:80</p>
+      <script type="text/plain" class="code" data-title="S1">sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp
+sudo ufw allow from <S2_IP> to any port 80 proto tcp
+sudo ufw allow from 10.8.0.0/24 to any port 80 proto tcp   # ไม่จำเป็นกับวิธี NAT (ดูหมายเหตุ)
+sudo ufw enable
+sudo ufw status verbose</script>
+      <script type="text/plain" class="code" data-title="S2">sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp
+sudo ufw allow <WG_PORT>/udp
+sudo ufw route allow in on wg0 out on <IFACE> to <S1_IP> port 80 proto tcp
+sudo ufw enable
+sudo ufw status verbose</script>
+      <dl class="expect">
+        <dt class="good">ต้องเห็น</dt><dd><code>Status: active</code> และ <code>Default: deny (incoming), allow (outgoing)</code> ที่ S1 ต้องมี <code>22/tcp ALLOW IN Anywhere</code> กับ <code>80/tcp ALLOW IN &lt;S2_IP&gt;</code> ที่ S2 ต้องมี <code>&lt;WG_PORT&gt;/udp</code> และบรรทัด route ที่หน้าตาแบบ <code>&lt;S1_IP&gt; 80/tcp on &lt;IFACE&gt; ALLOW FWD Anywhere on wg0</code></dd>
+        <dt class="bad">พลาดบ่อย</dt><dd><code>ufw enable</code> จะถามว่าอาจตัด SSH เดิมไหม ให้ตอบ <code>y</code> (ปลอดภัยเพราะอนุญาต 22 ไว้แล้ว) และห้ามมีกฎ <code>80 ALLOW Anywhere</code> ที่ S1 (C3 และ C4 ได้ 0 ทันที)</dd>
+      </dl>
+      <div class="note"><p><b>หมายเหตุกฎ 10.8.0.0/24 ที่ S1:</b> จากการทดสอบ ทราฟฟิกผ่าน WireGuard ถูก NAT ที่ S2 ก่อนถึง S1 ทำให้ Caddy เห็นต้นทางเป็น <code>&lt;S2_IP&gt;</code> เสมอ กฎ <code>&lt;S2_IP&gt;</code> จึงเป็นกฎที่ทำงานจริง ส่วนกฎ 10.8.0.0/24 จะมีผลก็ต่อเมื่อไม่ทำ NAT เปิดทิ้งไว้ไม่เสียหาย แต่ไม่จำเป็น</p></div>
+    </section>
+
+    <!-- ===================== STEP 6 ===================== -->
+    <section class="step" id="step6" data-phase="4">
+      <div class="step-head"><span class="n">6</span><h2>Client config</h2><button type="button" class="jump" data-jump="4">ดูในแอนิเมชัน</button></div>
+      <p class="why">ฝั่ง Client บอก WireGuard ว่าจะคุยกับ S2 ที่ไหน และให้ส่งอะไรเข้าอุโมงค์ ค่า <code>AllowedIPs</code> ระบุเฉพาะวง <code>10.8.0.0/24</code> กับ <code>&lt;S1_IP&gt;/32</code> ทราฟฟิกอื่นของเครื่องจึงไม่ผ่านอุโมงค์</p>
+      <script type="text/plain" class="code" data-title="Client: ดึง public key ของ S2 แล้วสร้าง /etc/wireguard/wg0.conf">cd ~/wg
+scp peter@<S2_IP>:~/server.pub .
+SERVER_PUB=$(cat server.pub)
+sudo tee /etc/wireguard/wg0.conf > /dev/null <<EOF
+[Interface]
+PrivateKey = $(cat client.key)
+Address = 10.8.0.2/32
+
+[Peer]
+PublicKey = $SERVER_PUB
+Endpoint = <S2_IP>:<WG_PORT>
+AllowedIPs = 10.8.0.0/24, <S1_IP>/32
+PersistentKeepalive = 25
+EOF
+sudo chmod 600 /etc/wireguard/wg0.conf</script>
+      <dl class="expect">
+        <dt class="good">ต้องเห็น</dt><dd><code>sudo ls -l /etc/wireguard/wg0.conf</code> แสดงสิทธิ์ <code>-rw-------</code> (600)</dd>
+        <dt class="bad">พลาดบ่อย</dt><dd>ไฟล์นี้มี private key ของ Client ถ้าลืม <code>chmod 600</code> ไฟล์จะเป็น 644 และทุก user บนเครื่องอ่านคีย์ได้ (ฉบับเดิมไม่มีบรรทัดนี้) ส่วน public key ของ S2 สั้น จะคัดลอกด้วยมือจาก <code>sudo cat /etc/wireguard/server.pub</code> แทน <code>scp</code> ก็ได้</dd>
+      </dl>
+    </section>
+
+    <!-- ===================== STEP 7 ===================== -->
+    <section class="step" id="step7" data-phase="5">
+      <div class="step-head"><span class="n">7</span><h2>ทดสอบ (Category E)</h2><button type="button" class="jump" data-jump="5">ดูในแอนิเมชัน</button></div>
+      <p class="why">ต้องพิสูจน์สามอย่าง: เข้าเว็บได้ผ่าน WireGuard, เข้าเว็บได้ผ่าน SSH SOCKS และเข้าตรงไม่ได้ จากนั้นดู log ว่า S1 เห็นแต่ S2</p>
+      <script type="text/plain" class="code" data-title="Path A: WireGuard">sudo wg-quick up wg0
+sudo wg show                 # ต้องมี handshake ล่าสุด
+ping -c2 10.8.0.1
+curl -s http://<S1_IP>/      # ต้องเห็น TOKEN</script>
+      <script type="text/plain" class="code" data-title="Path B: SSH SOCKS (ปิด WG ก่อน)">sudo wg-quick down wg0
+ip link show wg0             # ต้อง error = ไม่มี interface
+ssh -N -D 1080 peter@<S2_IP> &
+curl --socks5-hostname 127.0.0.1:1080 http://<S1_IP>/
+kill %1                      # ปิด tunnel (ใช้ได้ใน shell แบบ interactive)</script>
+      <script type="text/plain" class="code" data-title="Negative test, port scan และ log (WG ยังปิดอยู่)">curl -m 5 http://<S1_IP>/; echo $?          # ต้องได้ 28
+nc -zv -w2 <S2_IP> 22 80 443 1080           # เปิดเฉพาะ 22
+sudo journalctl -u caddy -n 20 --no-pager   # บน S1: ดู source IP</script>
+      <dl class="expect">
+        <dt class="good">ต้องเห็น</dt><dd>Path A: <code>wg show</code> มีบรรทัด <code>latest handshake</code>, ping ตอบ และ curl เห็น TOKEN &nbsp;Path B: <code>ip link show wg0</code> แจ้งว่าไม่มี device และ curl ผ่าน SOCKS เห็น TOKEN &nbsp;Negative: curl รอ 5 วินาทีแล้วคืน <code>28</code> และ <code>nc</code> แจ้ง open แค่พอร์ต 22</dd>
+        <dt class="good">log ที่ถูกต้อง</dt><dd>ใน log ของ Caddy (JSON) ทั้ง path A และ path B มี <code>"remote_ip":"&lt;S2_IP&gt;"</code> และต้องไม่มี IP ของ Client เลย เพราะคำขอตรงจาก Client ถูก UFW ทิ้งก่อนถึง Caddy</dd>
+        <dt class="bad">พลาดบ่อย</dt><dd>ลืมปิด WG ก่อนทดสอบ path B จะทำให้ไม่รู้ว่าใช้ทางไหน และ negative test ต้องทำตอน WG ปิดเท่านั้น ถ้า <code>ping</code> ไม่มีในเครื่อง ให้ติดตั้ง <code>iputils-ping</code></dd>
+      </dl>
+    </section>
+
+    <section class="block" id="careful">
+      <h2>สิ่งที่ต้องระวัง</h2>
+      <div class="note err"><p><b>ห้ามทำ:</b> ปิด UFW, เปิดพอร์ตเกินจำเป็น, ก๊อป private key ข้ามเครื่อง, ใช้พอร์ต 51820 (ถ้าอาจารย์ไม่ระบุ)</p></div>
+      <p>แบ่งงานแนะนำ: M1 รับ S1 (Caddy และ UFW), M2 รับ S2 (WireGuard และ UFW), M3 รับ Client (key, WG, SOCKS), M4 รับ SSH hardening ทั้งสองเครื่อง แล้ว cross-review กัน</p>
+    </section>
+
+    <section class="block" id="qa">
+      <h2>เตรียมตอบรายบุคคล</h2>
+      <p>ทุกคนต้องอธิบายได้ กดที่คำถามเพื่อดูคำตอบ</p>
+      <details><summary>ทำไมต้อง allow 22 ก่อน enable</summary><div>UFW ตั้ง default deny incoming พอ enable ปุ๊บ ทุกอย่างที่ไม่มีกฎจะถูกทิ้ง ถ้ายังไม่ได้ allow 22 session SSH ที่ใช้อยู่จะค้างและเข้าเครื่องไม่ได้อีก</div></details>
+      <details><summary>ถ้า ip_forward ปิดจะเกิดอะไร</summary><div>S2 รับแพ็กเก็ตจาก <code>wg0</code> ได้ ทำให้ <code>ping 10.8.0.1</code> ยังตอบ แต่ไม่ส่งต่อไป S1 curl ไป S1 จึงค้างจน timeout</div></details>
+      <details><summary>ทำไม S1 ต้อง allow ทั้ง 10.8.0.0/24 และ S2_IP</summary><div>จากการทดสอบกับวิธี NAT S1 เห็นต้นทางเป็น S2_IP เท่านั้น กฎ S2_IP จึงเป็นกฎที่ใช้จริง กฎ 10.8.0.0/24 จำเป็นเฉพาะกรณีไม่ทำ NAT ซึ่ง S1 ต้องรู้ route กลับไปวง 10.8.0.0/24 ด้วย</div></details>
+      <details><summary>AllowedIPs = 0.0.0.0/0 ต่างอย่างไร</summary><div>ที่ Client <code>AllowedIPs</code> คือทั้งรายการ route ที่ส่งเข้าอุโมงค์ และตัวกรองแพ็กเก็ตขาเข้า ค่าเฉพาะอย่าง <code>10.8.0.0/24, &lt;S1_IP&gt;/32</code> ส่งเข้าอุโมงค์เฉพาะสองปลายทางนั้น (split tunnel) ส่วน <code>0.0.0.0/0</code> ส่งทราฟฟิกทั้งเครื่องผ่าน S2 (full tunnel) ซึ่งต้องมี NAT ออกอินเทอร์เน็ตและเสี่ยงตัด SSH ของตัวเอง ฝั่ง S2 ใช้ <code>10.8.0.2/32</code> เพื่อรับจาก peer นี้เฉพาะที่อยู่นี้</div></details>
+      <details><summary><code>ssh -D</code> ต่างจาก VPN อย่างไร</summary><div><code>ssh -D</code> เปิด SOCKS proxy ระดับโปรแกรม ใช้ได้กับโปรแกรมที่ตั้งให้ใช้ proxy และรองรับเฉพาะ TCP ไม่มี interface หรือ route ใหม่ ส่วน WireGuard เป็น VPN ระดับเครือข่าย มี <code>wg0</code> และ route ทุกโปรแกรมใช้ได้โดยไม่ต้องตั้งค่า รวม UDP และ ping</div></details>
+      <details><summary><code>--socks5-hostname</code> ต่างจาก <code>--socks5</code> อย่างไร</summary><div><code>--socks5</code> ให้ curl แปลงชื่อโฮสต์เองบน Client แล้วส่ง IP ให้ proxy ส่วน <code>--socks5-hostname</code> ส่งชื่อให้ proxy (S2) เป็นฝ่ายแปลง ถ้าใช้ IP ตรง ๆ อย่าง <code>http://&lt;S1_IP&gt;/</code> สองแบบให้ผลเหมือนกัน</div></details>
+    </section>
+
+    <section class="block" id="wsl">
+      <h2>ซ้อมด้วย Windows 3 เครื่อง</h2>
+      <p>ปัญหา: Windows ไม่มี <code>ufw</code>, <code>wg-quick</code>, <code>systemctl</code> แบบ Linux ทางแก้คือรัน Linux ในแต่ละเครื่อง แล้วให้ได้ IP ใน LAN จริง</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>วิธี</th><th>ทำอย่างไร</th><th>ข้อดีและข้อเสีย</th></tr></thead>
+          <tbody>
+            <tr><td>VM แบบ Bridged (แนะนำ)</td><td>แต่ละเครื่องลง VirtualBox หรือ Hyper-V ใช้ Ubuntu Server ตั้ง network เป็น Bridged หรือ External switch</td><td>ได้ IP LAN จริง ใกล้โจทย์สุด กิน RAM ประมาณ 1-2 GB ต่อเครื่อง</td></tr>
+            <tr><td>WSL2 เครื่องเดียว จำลอง 3 เครื่อง (ทดสอบแล้ว)</td><td>เปิด systemd ใน WSL แล้วใช้ <code>systemd-nspawn</code> สร้าง container 3 ตัวบน bridge เดียวกัน</td><td>ไม่ต้องลง VM ทำโจทย์ Step 0 ถึง 7 ได้ครบ ต่างจากเครื่องจริงบางจุด (ดูด้านล่าง)</td></tr>
+            <tr><td>WSL2 แบบ mirrored (ยังไม่ได้ทดสอบ)</td><td>Windows 11 22H2 ขึ้นไป ตั้ง <code>networkingMode=mirrored</code> ให้ WSL ใช้ IP เดียวกับ Windows</td><td>ไม่ได้ลองรัน WireGuard, UFW และ forwarding ด้วยวิธีนี้ ถ้าไม่ทำงานให้ใช้ VM</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>ผลที่ทดสอบจริงกับ WSL2 (24 ต.ค. 2026)</h3>
+      <ul>
+        <li>Ubuntu 26.04 บน WSL2 ที่เปิด systemd และ kernel มี WireGuard ทำโจทย์ได้ครบ: SSH hardening, Caddy, UFW, WireGuard พร้อม NAT, path A, path B, negative test (ได้ 28) และ log ที่เห็นแต่ S2_IP</li>
+        <li>container ต้องตั้งค่า 4 อย่างจึงทำงานเหมือนเครื่องจริง: ให้สิทธิ์ <code>CAP_NET_ADMIN</code> (ไม่งั้น ufw, iptables, wg ใช้ไม่ได้), ตั้ง <code>Timezone=off</code> (ไม่งั้น tzdata ติดตั้งไม่ผ่านและ dpkg ค้าง), เปิด repo universe และใส่ชื่อเครื่องใน <code>/etc/hosts</code></li>
+        <li>VM ของ WSL หยุดเองได้ เมื่อหยุด bridge กับ container จะหายและต้องสร้างใหม่</li>
+      </ul>
+      <div class="note warn"><p><b>ต่างจากเครื่องสอบจริง:</b> ชื่อ interface (ในแล็บคือ <code>host0</code> เครื่องจริงมักเป็น <code>eth0</code> หรือ <code>ens33</code>), <code>sudo</code> จะถามรหัสผ่าน, ssh ถามยืนยัน fingerprint ครั้งแรก และ <code>ufw enable</code> ถามให้พิมพ์ y ซึ่งแล็บข้ามหมด ให้ฝึกพิมพ์เองตามโจทย์ให้ชิน</p></div>
+      <details>
+        <summary>วิธีเดิมที่ตั้ง WSL mirrored และเปิด firewall (ยังไม่ได้ทดสอบ)</summary>
+        <div>
+          <script type="text/plain" class="code" data-title="C:\Users\<ชื่อ>\.wslconfig">[wsl2]
+networkingMode=mirrored</script>
+          <script type="text/plain" class="code" data-title="ใน WSL: /etc/wsl.conf">[boot]
+systemd=true</script>
+          <p>หลังแก้ให้รัน <code>wsl --shutdown</code> ใน PowerShell แล้วเปิด WSL ใหม่ ถ้าต้องการให้ LAN เข้า WSL ได้ ให้รันคำสั่งนี้ใน PowerShell แบบ Administrator</p>
+          <script type="text/plain" class="code" data-title="Windows (Administrator)">Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow</script>
+          <p>Wi-Fi ของมหาลัยหรือหอมักบล็อกการคุยกันระหว่างเครื่อง (client isolation) และ Bridged บน Wi-Fi อาจไม่ทำงาน ใช้สาย LAN เดียวกัน หรือเปิด hotspot จากมือถือให้ทั้ง 3 เครื่องต่อ และทดสอบด้วย <code>ping</code> ก่อนเริ่มซ้อม</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="block" id="changes">
+      <h2>แก้อะไรไปบ้างจากไฟล์เดิม</h2>
+      <p>ทุกข้อด้านล่างมาจากการรันโจทย์จริงบนแล็บ 3 เครื่อง ไม่ได้เดา</p>
+      <ol class="changes">
+        <li><b>Step 6:</b> เพิ่ม <code>sudo chmod 600 /etc/wireguard/wg0.conf</code> ที่ Client ของเดิมไม่มี ทำให้ไฟล์เป็น 644 และ private key อ่านได้ทุกคน</li>
+        <li><b>Step 4 และ 6:</b> เพิ่มวิธีส่ง <code>client.pub</code> ไป S2 และรับ <code>server.pub</code> กลับ (ของเดิมบอกแค่ให้ส่ง public key โดยไม่บอกวิธี) และให้ shell แทนค่าคีย์ใน config เอง</li>
+        <li><b>Step 5:</b> ระบุว่ากฎ <code>10.8.0.0/24</code> ที่ S1 ไม่จำเป็นกับวิธี NAT เพราะ Caddy เห็นต้นทางเป็น S2_IP เสมอ</li>
+        <li><b>แพ็กเกจ:</b> เพิ่ม <code>iputils-ping</code> ให้ Client เพราะ Step 7 ใช้ <code>ping</code> และระบุว่า <code>caddy</code> อยู่ใน universe</li>
+        <li><b>ทุก step:</b> เพิ่มส่วน "ต้องเห็น" และ "พลาดบ่อย" ตามผลจริง เช่น fingerprint, prompt ของ <code>ufw enable</code>, คำเตือนของ Caddyfile, <code>admin</code> เข้า SSH ไม่ได้หลังล็อก</li>
+        <li><b>ซ้อมด้วย Windows:</b> เปลี่ยนข้อความ "ยังไม่ได้ทดลอง" เป็นผลทดสอบจริงของ WSL2 และแยกว่าวิธี mirrored เดิมยังไม่ได้ทดสอบ</li>
+        <li><b>ใหม่:</b> แอนิเมชันวนซ้ำอธิบายทุกช่วง, คำศัพท์, และคำตอบของคำถามเตรียมตอบรายบุคคล</li>
+        <li><b>ยังไม่ได้ทดสอบ:</b> คำสั่งติดตั้ง Caddy จาก repo ทางการ และการตั้ง WSL แบบ mirrored (ระบุไว้ในหน้าแล้ว)</li>
+      </ol>
+    </section>
+  </main>
+</div>
+
+<footer>
+  หน้านี้เปิดใช้ได้โดยไม่ต้องต่ออินเทอร์เน็ต ฟอนต์ Bai Jamjuree และ IBM Plex Mono จะโหลดเมื่อออนไลน์ ถ้าออฟไลน์จะใช้ฟอนต์ไทยของระบบแทน
+</footer>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const NS = 'http://www.w3.org/2000/svg';
+
+/* ============================================================
+   Animation: everything is a pure function of time, window.seek(t)
+   (no CSS transitions, no timers, no state kept between frames)
+   ============================================================ */
+const T = 40;
+const PH = [0, 4, 9, 14, 19, 24, 30, 36, 40];
+const PH_NAME = ['ภาพรวม', 'ล็อก SSH', 'เว็บ และ UFW', 'ต่อตรง', 'WireGuard', 'Path A', 'Path B', 'ดู log'];
+
+const PHASES = [
+  { t: 'ภาพรวม: 3 เครื่องบน LAN เดียวกัน',
+    b: 'Client คือเครื่องที่เราใช้ทดสอบ, S2 เป็นด่านกลางที่ทำ VPN และเป็นทางผ่านไปหา S1, ส่วน S1 คือเว็บเซิร์ฟเวอร์ที่ต้องถูกล็อกไว้ ให้เข้าถึงได้เฉพาะผ่าน S2 เท่านั้น เส้นด้านล่างคือ LAN ที่ทั้งสามเครื่องเสียบอยู่ร่วมกัน',
+    c: '', s: 'ดูตอน: ต้องทำอะไรบ้าง', j: '#todo' },
+  { t: 'ล็อก SSH: เข้าได้ด้วย key เท่านั้น',
+    b: 'Client ส่ง public key ไปเก็บบน S1 และ S2 (ssh-copy-id) แล้วเราปิดการเข้าด้วยรหัสผ่านและ root และอนุญาตเฉพาะ user peter ใครลองเข้าด้วยรหัสผ่านหรือ root จะถูกปฏิเสธทันที ไอคอนกุญแจเขียวคือเครื่องที่ล็อกแล้ว',
+    c: 'ssh-copy-id -i ~/.ssh/id_ed25519.pub peter@<S1_IP>\nsudo sshd -T | grep -Ei \'passwordauth|permitroot|allowusers\'', s: 'ดูตอน: Step 1 และ Step 2', j: '#step1' },
+  { t: 'เว็บบน S1 และยามหน้าประตู (UFW)',
+    b: 'Caddy เสิร์ฟหน้าเว็บที่มี TOKEN ที่พอร์ต 80 จากนั้น UFW ตั้งเป็น default deny แล้วเปิดพอร์ต 80 ให้เฉพาะ S2_IP แถบ UFW ที่ขาของ S1 คือประตูที่ตรวจต้นทางของทุกแพ็กเก็ตก่อนถึงเว็บ ต้องไม่มีกฎ 80 ALLOW Anywhere',
+    c: 'sudo ufw default deny incoming\nsudo ufw allow from <S2_IP> to any port 80 proto tcp', s: 'ดูตอน: Step 3 และ Step 5', j: '#step3' },
+  { t: 'Negative test: ต่อตรงไป S1 ต้องไม่ผ่าน',
+    b: 'ถ้า Client ยิง curl ไป S1 ตรง ๆ ต้นทางคือ Client_IP ซึ่งไม่มีกฎอนุญาต UFW จึงทิ้งแพ็กเก็ตเงียบ ๆ (drop ไม่ใช่ reject) curl จึงไม่ได้คำตอบอะไรเลย รอจนหมด 5 วินาทีแล้วคืนค่า 28 ซึ่งคือผลที่โจทย์ต้องการ',
+    c: 'curl -m 5 http://<S1_IP>/; echo $?\n# 28', s: 'ดูตอน: Step 7 (negative test)', j: '#step7' },
+  { t: 'สร้างอุโมงค์ WireGuard ระหว่าง Client กับ S2',
+    b: 'สองฝั่งสร้าง key คู่ของตัวเองแล้วแลกกันเฉพาะ public key (private key ห้ามออกจากเครื่อง) อุโมงค์ใช้ที่อยู่ 10.8.0.2 ฝั่ง Client และ 10.8.0.1 ฝั่ง S2 ผ่าน UDP เมื่อเปิดแล้วทั้งสองฝั่งจับมือกัน (handshake) และเริ่มส่งข้อมูลเข้ารหัสได้',
+    c: 'sudo wg-quick up wg0\nsudo wg show   # ต้องมี latest handshake', s: 'ดูตอน: Step 4 และ Step 6', j: '#step4' },
+  { t: 'Path A: เข้าเว็บผ่าน WireGuard',
+    b: 'Client ส่งคำขอเข้าอุโมงค์ไปที่ S2 จากนั้น S2 ซึ่งเปิด ip_forward ไว้จะทำ NAT (masquerade) เปลี่ยนต้นทางจาก 10.8.0.2 เป็น S2_IP แล้วส่งต่อไปที่ S1 ซึ่งเห็นว่าคำขอมาจาก S2_IP และ UFW อนุญาต จึงได้หน้าเว็บ TOKEN กลับมาตามทางเดิม',
+    c: 'ping -c2 10.8.0.1\ncurl -s http://<S1_IP>/   # เห็น TOKEN', s: 'ดูตอน: Step 7 (Path A)', j: '#step7' },
+  { t: 'Path B: เข้าเว็บผ่าน SSH SOCKS',
+    b: 'ปิด WireGuard ก่อน แล้วเปิดอุโมงค์ SSH แบบ dynamic (ssh -D) ซึ่งทำให้ Client มี SOCKS proxy ที่ 127.0.0.1:1080 เมื่อ curl ส่งคำขอผ่าน proxy นี้ คำขอจะไปทาง SSH จนถึง S2 แล้ว S2 เป็นฝ่ายเชื่อมต่อไปที่ S1 เอง ต้นทางที่ S1 เห็นจึงเป็น S2_IP เหมือนกับ path A',
+    c: 'sudo wg-quick down wg0\nssh -N -D 1080 peter@<S2_IP> &\ncurl --socks5-hostname 127.0.0.1:1080 http://<S1_IP>/', s: 'ดูตอน: Step 7 (Path B)', j: '#step7' },
+  { t: 'ตรวจ log: S1 ต้องเห็นแต่ S2',
+    b: 'log ของ Caddy ต้องมี remote_ip เป็น S2_IP ทั้ง path A และ path B และต้องไม่มี Client_IP เลย เพราะคำขอตรงจาก Client ถูก UFW ทิ้งก่อนไปถึง Caddy นี่คือหลักฐานว่าทางเข้า S1 มีแค่ผ่าน S2 จากนั้นแอนิเมชันจะวนกลับไปเริ่มใหม่',
+    c: 'sudo journalctl -u caddy --no-pager | grep remote_ip', s: 'ดูตอน: Step 7 (log)', j: '#step7' }
+];
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const eio = x => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const pulse = (t, a, b) => Math.sin(Math.PI * lin(t, a, b));
+// closed-form spring step response, damping ratio 0.8 (tiny overshoot)
+const spring = (x, f = 7, z = .8) => {
+  if (x <= 0) return 0;
+  const wd = f * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * f * x) * (Math.cos(wd * x) + (z * f / wd) * Math.sin(wd * x));
+};
+const win = (t, a, b, fi = .35, fo = .35) => Math.min(lin(t, a, a + fi), 1 - lin(t, b - fo, b));
+
+const el = id => document.getElementById(id);
+const scene = el('scene');
+const P = { c2s1: el('c2s1'), c2s2: el('c2s2'), s22s1: el('s22s1'), laneA: el('laneA'), laneB: el('laneB') };
+const LEN = Object.fromEntries(Object.entries(P).map(([k, v]) => [k, v.getTotalLength()]));
+
+// ---------- tags (labels that appear on a window of time) ----------
+const TAGS = [
+  { a: 2.3, b: 3.9, x: 600, y: 70, tone: 'ink', lines: ['3 เครื่อง อยู่ใน LAN เดียวกัน'] },
+  { a: 4.0, b: 5.9, x: 145, y: 150, tone: 'ink', lines: ['ssh-copy-id', 'ส่ง public key'] },
+  { a: 6.0, b: 8.95, x: 1055, y: 84, tone: 'ink', mono: true, lines: ['PasswordAuthentication no', 'PermitRootLogin no', 'AllowUsers peter'] },
+  { a: 7.0, b: 8.6, x: 1055, y: 170, tone: 'red', lines: ['✗ รหัสผ่านไม่ผ่าน'] },
+  { a: 7.6, b: 9.0, x: 600, y: 150, tone: 'red', lines: ['✗ root เข้าไม่ได้'] },
+  { a: 9.3, b: 10.8, x: 1055, y: 170, tone: 'ink', lines: ['Caddy พอร์ต 80 มีหน้า TOKEN'] },
+  { a: 10.9, b: 13.95, x: 1055, y: 170, tone: 'ink', lines: ['UFW: default deny'] },
+  { a: 12.0, b: 13.95, x: 1055, y: 132, tone: 'ok', lines: ['เปิดพอร์ต 80 ให้ S2_IP เท่านั้น'] },
+  { a: 14.2, b: 16.5, x: 145, y: 160, tone: 'ink', mono: true, lines: ['curl -m 5 http://S1_IP/'] },
+  { a: 16.7, b: 18.95, x: 940, y: 452, anchor: 'end', tone: 'red', lines: ['ถูกทิ้ง (drop) ไม่มีคำตอบ', 'รอ 5 วินาที แล้ว curl คืน 28'] },
+  { a: 19.3, b: 30.0, x: 372, y: 232, tone: 'a', lines: ['WireGuard (UDP WG_PORT)'] },
+  { a: 20.3, b: 30.0, x: 145, y: 160, tone: 'a', mono: true, lines: ['wg0 10.8.0.2'] },
+  { a: 20.3, b: 30.0, x: 600, y: 152, tone: 'a', mono: true, lines: ['wg0 10.8.0.1'] },
+  { a: 20.8, b: 22.5, x: 372, y: 196, tone: 'ink', lines: ['ส่งเฉพาะ public key'] },
+  { a: 22.7, b: 24.0, x: 372, y: 196, tone: 'a', lines: ['handshake สำเร็จ'] },
+  { a: 24.3, b: 26.0, x: 372, y: 196, tone: 'a', lines: ['คำขอเข้าอุโมงค์'] },
+  { a: 26.0, b: 27.9, x: 600, y: 98, tone: 'ink', lines: ['NAT (masquerade)', 'ต้นทาง 10.8.0.2 เปลี่ยนเป็น S2_IP'] },
+  { a: 27.7, b: 28.8, x: 940, y: 452, anchor: 'end', tone: 'ok', lines: ['✓ ต้นทางคือ S2_IP ผ่านได้'] },
+  { a: 30.0, b: 31.6, x: 372, y: 232, tone: 'ink', lines: ['wg-quick down'] },
+  { a: 30.9, b: 36.0, x: 372, y: 378, tone: 'b', lines: ['ssh -N -D 1080 (TCP 22)'] },
+  { a: 31.2, b: 36.0, x: 145, y: 160, tone: 'b', mono: true, lines: ['SOCKS 127.0.0.1:1080'] },
+  { a: 33.0, b: 35.95, x: 600, y: 152, tone: 'b', lines: ['S2 เป็นฝ่ายเชื่อมต่อไป S1'] },
+  { a: 33.9, b: 34.9, x: 940, y: 452, anchor: 'end', tone: 'ok', lines: ['✓ ต้นทางคือ S2_IP ผ่านได้'] },
+  { a: 36.2, b: 39.0, x: 600, y: 574, tone: 'ink', mono: true, lines: ['log path A: remote_ip = S2_IP', 'log path B: remote_ip = S2_IP', 'Client_IP ไม่ปรากฏเลย (UFW ทิ้งก่อนถึง Caddy)'] }
+];
+
+// ---------- packets (move along paths) ----------
+const PKTS = [
+  { p: 'c2s2', f: 0, t: .97, a: 4.3, b: 5.6, l: 'key', tone: 'ink' },
+  { p: 'c2s1', f: 0, t: .99, a: 4.5, b: 6.0, l: 'key', tone: 'ink' },
+  { p: 'c2s1', f: 0, t: .99, a: 6.8, b: 8.1, l: 'รหัสผ่าน', tone: 'ink', bounce: true },
+  { p: 'c2s2', f: 0, t: .99, a: 7.2, b: 8.5, l: 'root', tone: 'ink', bounce: true },
+  { p: 'c2s1', f: 0, t: .955, a: 14.5, b: 16.4, l: 'curl', tone: 'ink', hold: .6 },
+  { p: 'laneA', f: 0, t: 1, a: 20.8, b: 21.9, l: 'pub', tone: 'a', dy: -9 },
+  { p: 'laneA', f: 1, t: 0, a: 21.2, b: 22.3, l: 'pub', tone: 'a', dy: 9 },
+  { p: 'laneA', f: 0, t: 1, a: 24.4, b: 25.9, l: 'GET /', tone: 'a' },
+  { p: 's22s1', f: 0, t: 1, a: 26.4, b: 28.3, l: 'GET /', tone: 'ink' },
+  { p: 's22s1', f: 1, t: 0, a: 28.4, b: 29.3, l: 'TOKEN', tone: 'tok' },
+  { p: 'laneA', f: 1, t: 0, a: 29.3, b: 29.95, l: 'TOKEN', tone: 'tok' },
+  { p: 'laneB', f: 0, t: 1, a: 32.0, b: 33.0, l: 'GET /', tone: 'b' },
+  { p: 's22s1', f: 0, t: 1, a: 33.0, b: 34.5, l: 'GET /', tone: 'ink' },
+  { p: 's22s1', f: 1, t: 0, a: 34.5, b: 35.3, l: 'TOKEN', tone: 'tok' },
+  { p: 'laneB', f: 1, t: 0, a: 35.3, b: 35.95, l: 'TOKEN', tone: 'tok' }
+];
+
+const tagsLayer = el('tags');
+const pktLayer = el('packets');
+const svgEl = (n, attrs = {}) => { const e = document.createElementNS(NS, n); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+const TONE = { ink: 'var(--st-ink)', a: 'var(--st-a)', b: 'var(--st-b)', red: 'var(--st-red)', ok: 'var(--st-ok)' };
+
+TAGS.forEach(s => {
+  const g = svgEl('g');
+  const bg = svgEl('rect', { rx: 8, fill: '#0f2230', 'fill-opacity': .94, stroke: TONE[s.tone], 'stroke-width': 1.5 });
+  const tx = svgEl('text', { 'text-anchor': s.anchor || 'middle', x: s.x, y: s.y, fill: TONE[s.tone], 'font-size': 15, 'font-weight': 500 });
+  if (s.mono) tx.setAttribute('class', 'mono');
+  s.lines.forEach((ln, i) => { const ts = svgEl('tspan', { x: s.x, dy: i === 0 ? 0 : 21 }); ts.textContent = ln; tx.appendChild(ts); });
+  g.append(bg, tx);
+  tagsLayer.appendChild(g);
+  s.g = g; s.bg = bg; s.tx = tx;
+});
+
+PKTS.forEach(s => {
+  const g = svgEl('g');
+  const bg = svgEl('rect', { rx: 7, height: 24, y: -12, 'stroke-width': 1.5 });
+  const tx = svgEl('text', { 'text-anchor': 'middle', y: 4.5, 'font-size': 13, 'font-weight': 600, class: 'mono' });
+  tx.textContent = s.l;
+  const fills = { ink: ['#0f2230', 'var(--st-ink)', 'var(--st-ink)'], a: ['#10285f', 'var(--st-a)', '#cfdcff'], b: ['#3a2a07', 'var(--st-b)', '#ffe2a6'], tok: ['#e8f1f6', '#e8f1f6', '#0f2230'] };
+  const f = fills[s.tone];
+  bg.setAttribute('fill', f[0]); bg.setAttribute('stroke', f[1]); tx.setAttribute('fill', f[2]);
+  g.append(bg, tx);
+  pktLayer.appendChild(g);
+  s.g = g; s.bg = bg;
+});
+
+function fitAll() {
+  TAGS.forEach(s => {
+    const bb = s.tx.getBBox();
+    s.bg.setAttribute('x', bb.x - 10); s.bg.setAttribute('y', bb.y - 5);
+    s.bg.setAttribute('width', bb.width + 20); s.bg.setAttribute('height', bb.height + 10);
+  });
+  PKTS.forEach(s => {
+    const w = s.g.querySelector('text').getBBox().width + 16;
+    s.bg.setAttribute('x', -w / 2); s.bg.setAttribute('width', w);
+  });
+}
+
+const N = { client: el('n-client'), s2: el('n-s2'), s1: el('n-s1') };
+const NODE_AT = { client: [145, 300, .3], s2: [600, 300, .7], s1: [1055, 300, 1.1] };
+const world = el('world');
+const bus = el('bus'), bus2 = el('bus2');
+const ipLabels = el('ipLabels'), lanLabel = el('lanLabel');
+const tubeA = el('tubeA'), tubeB = el('tubeB'), hsA = el('hsA');
+const clipA = el('clipArect'), clipB = el('clipBrect');
+const tubeAdash = el('tubeAdash'), tubeBdash = el('tubeBdash');
+const page = el('page'), lockS1 = el('lockS1'), lockS2 = el('lockS2');
+const gate = el('gate'), gateBar = el('gateBar'), gateText = el('gateText');
+
+function phaseOf(t) { let i = 0; for (let k = 0; k < PH.length - 1; k++) if (t >= PH[k]) i = k; return i; }
+
+let lastPhase = -1;
+const capTitle = el('capTitle'), capBody = el('capBody'), capCmd = el('capCmd'), capSteps = el('capSteps'), capJump = el('capJump');
+const chips = el('chips');
+const chipEls = PH_NAME.map((n, i) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'chip'; b.textContent = n;
+  b.addEventListener('click', () => jump(i, true));
+  chips.appendChild(b);
+  return b;
+});
+
+function seek(t) {
+  t = ((t % T) + T) % T;
+  const wf = 1 - lin(t, 39.1, 40);
+  world.setAttribute('opacity', wf.toFixed(3));
+
+  // nodes: spring-in, staggered
+  for (const k in N) {
+    const [x, y, d] = NODE_AT[k];
+    const s = spring(t - d, 7, .8);
+    const sc = .9 + .1 * s;
+    N[k].setAttribute('transform', `translate(${x} ${y}) scale(${sc.toFixed(4)})`);
+    N[k].setAttribute('opacity', lin(t, d, d + .35).toFixed(3));
+  }
+  // LAN bus draws in
+  const bd = eio(lin(t, 1.5, 2.6));
+  bus.setAttribute('stroke-dashoffset', (1 - bd).toFixed(4));
+  bus2.setAttribute('stroke-dashoffset', (1 - eio(lin(t, 1.9, 2.6))).toFixed(4));
+  const lab = lin(t, 2.0, 2.8);
+  ipLabels.setAttribute('opacity', lab.toFixed(3));
+  lanLabel.setAttribute('opacity', lab.toFixed(3));
+
+  // locks and page icon
+  lockS2.setAttribute('opacity', lin(t, 5.6, 5.9).toFixed(3));
+  lockS1.setAttribute('opacity', lin(t, 6.0, 6.3).toFixed(3));
+  lockS2.setAttribute('transform', `translate(692 214) scale(${(.6 + .4 * spring(t - 5.6, 8, .8)).toFixed(3)})`);
+  lockS1.setAttribute('transform', `translate(1147 240) scale(${(.6 + .4 * spring(t - 6.0, 8, .8)).toFixed(3)})`);
+  const pg = spring(t - 9.3, 8, .8);
+  page.setAttribute('opacity', lin(t, 9.3, 9.6).toFixed(3));
+  page.setAttribute('transform', `translate(0 38) scale(${(.7 + .3 * pg).toFixed(3)})`);
+
+  // UFW gate
+  const gIn = eio(lin(t, 10.8, 11.6));
+  gate.setAttribute('opacity', gIn.toFixed(3));
+  gate.setAttribute('transform', `translate(1055 420) scale(${gIn.toFixed(3)} 1)`);
+  const redF = Math.max(pulse(t, 16.4, 17.8), 0);
+  const okF = Math.max(pulse(t, 27.6, 28.7), pulse(t, 33.9, 34.9));
+  const gc = okF > redF ? 'var(--st-ok)' : redF > 0.02 ? 'var(--st-red)' : 'var(--st-mute)';
+  gateBar.setAttribute('fill', gc);
+  gateBar.setAttribute('height', (12 + 8 * Math.max(redF, okF)).toFixed(2));
+  gateBar.setAttribute('y', (-6 - 4 * Math.max(redF, okF)).toFixed(2));
+
+  // tubes
+  const aIn = eio(lin(t, 19.3, 20.5));
+  const aOut = 1 - lin(t, 30.0, 30.8);
+  clipA.setAttribute('width', (240 * aIn).toFixed(2));
+  tubeA.setAttribute('opacity', (aOut).toFixed(3));
+  tubeAdash.setAttribute('stroke-dashoffset', (-t * 34).toFixed(2));
+  hsA.setAttribute('opacity', (.5 * pulse(t, 22.6, 23.7)).toFixed(3));
+  const bIn = eio(lin(t, 30.9, 31.8));
+  clipB.setAttribute('width', (240 * bIn).toFixed(2));
+  tubeB.setAttribute('opacity', (win(t, 30.9, 36.0, .3, .5)).toFixed(3));
+  tubeBdash.setAttribute('stroke-dashoffset', (-t * 26).toFixed(2));
+
+  // tags
+  TAGS.forEach(s => {
+    const o = win(t, s.a, s.b);
+    s.g.setAttribute('opacity', o.toFixed(3));
+    s.g.setAttribute('transform', `translate(0 ${((1 - o) * 6).toFixed(2)})`);
+  });
+
+  // packets
+  PKTS.forEach(s => {
+    const q = eio(lin(t, s.a, s.b));
+    const tri = s.bounce ? (q < .5 ? q * 2 : (1 - q) * 2) : q;
+    const p = s.f + (s.t - s.f) * tri;
+    const hold = s.hold || 0;
+    let o = Math.min(lin(t, s.a, s.a + .15), 1 - lin(t, s.b + hold - .25, s.b + hold + .01));
+    if (t < s.a || t > s.b + hold) o = 0;
+    const pt = P[s.p].getPointAtLength(p * LEN[s.p]);
+    const shake = (hold && t > s.b && t < s.b + .5) ? Math.sin((t - s.b) * 60) * 3 : 0;
+    s.g.setAttribute('transform', `translate(${(pt.x + shake).toFixed(2)} ${(pt.y + (s.dy || 0)).toFixed(2)})`);
+    s.g.setAttribute('opacity', clamp(o).toFixed(3));
+  });
+
+  // caption + chips
+  const ph = phaseOf(t);
+  if (ph !== lastPhase) {
+    lastPhase = ph;
+    const c = PHASES[ph];
+    capTitle.textContent = c.t; capBody.textContent = c.b; capCmd.textContent = c.c;
+    capSteps.textContent = c.s;
+    capJump.hidden = false; capJump.dataset.href = c.j;
+    chipEls.forEach((b, i) => b.setAttribute('aria-current', i === ph ? 'true' : 'false'));
+  }
+  chipEls.forEach((b, i) => b.style.setProperty('--p', clamp((t - PH[i]) / (PH[i + 1] - PH[i])).toFixed(3)));
+  timeEl.textContent = fmt(t) + ' / ' + fmt(T);
+  if (!scrubbing) scrub.value = t.toFixed(2);
+  return t;
+}
+
+const fmt = s => { s = Math.floor(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const timeEl = el('time'), scrub = el('scrub'), playBtn = el('play'), speedSel = el('speed'), stage = el('stage');
+let t = 0, playing = true, speed = 1, scrubbing = false, onScreen = true, last = 0;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reduced) { playing = false; t = 27.0; }
+
+function setPlaying(v) { playing = v; playBtn.textContent = v ? 'หยุด' : 'เล่น'; }
+function jump(i, play) { t = PH[i] + .02; seek(t); if (play) setPlaying(true); last = performance.now(); }
+
+playBtn.addEventListener('click', () => setPlaying(!playing));
+speedSel.addEventListener('change', () => { speed = parseFloat(speedSel.value); });
+scrub.addEventListener('input', () => { scrubbing = true; t = parseFloat(scrub.value); seek(t); });
+scrub.addEventListener('change', () => { scrubbing = false; last = performance.now(); });
+capJump.addEventListener('click', () => { const h = capJump.dataset.href; const e = h && document.querySelector(h); if (e) e.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); });
+$$('.jump').forEach(b => b.addEventListener('click', () => {
+  jump(parseInt(b.dataset.jump, 10), true);
+  stage.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+}));
+stage.addEventListener('keydown', e => {
+  if (e.target !== stage) return;
+  if (e.key === ' ') { e.preventDefault(); setPlaying(!playing); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); jump(Math.min(7, phaseOf(t) + 1), false); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); jump(Math.max(0, phaseOf(t) - 1), false); }
+});
+document.addEventListener('visibilitychange', () => { last = performance.now(); });
+if ('IntersectionObserver' in window) new IntersectionObserver(es => { onScreen = es[0].isIntersecting; last = performance.now(); }).observe(stage);
+
+function frame(now) {
+  const dt = Math.min(.1, (now - last) / 1000);
+  last = now;
+  if (playing && onScreen && !document.hidden && !scrubbing) { t = (t + dt * speed) % T; seek(t); }
+  requestAnimationFrame(frame);
+}
+window.seek = seek;      // deterministic: seek(t) fully redraws the scene
+window.ready = false;
+
+/* ============================================================
+   Code blocks, copy buttons, scroll spy
+   ============================================================ */
+function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+$$('script.code').forEach(s => {
+  const raw = s.textContent.replace(/^\n/, '').replace(/\s+$/, '');
+  const fig = document.createElement('figure'); fig.className = 'code';
+  const cap = document.createElement('figcaption');
+  const title = document.createElement('span'); title.textContent = s.dataset.title || '';
+  const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'คัดลอก';
+  cap.append(title, btn);
+  const pre = document.createElement('pre'); const code = document.createElement('code');
+  code.innerHTML = escapeHtml(raw)
+    // เน้นเฉพาะตัวแทนค่า เช่น <S1_IP> หรือ <ค่าที่ต้องใส่> ไม่เน้น HTML จริงอย่าง <h1>
+    .replace(/(&lt;(?:[A-Z][A-Z0-9_]*|[^&\n]{0,30}[฀-๿][^&\n]{0,30})&gt;)/g, '<span class="ph">$1</span>')
+    .replace(/(^|\s)(#[^\n]*)/gm, (m, a, b) => a + '<span class="cm">' + b + '</span>');
+  pre.appendChild(code); fig.append(cap, pre);
+  btn.addEventListener('click', async () => {
+    let ok = false;
+    try { await navigator.clipboard.writeText(raw); ok = true; } catch (e) {
+      const ta = document.createElement('textarea'); ta.value = raw; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+      ta.remove();
+    }
+    btn.textContent = ok ? 'คัดลอกแล้ว' : 'คัดลอกไม่ได้';
+    setTimeout(() => { btn.textContent = 'คัดลอก'; }, 1600);
+  });
+  s.replaceWith(fig);
+});
+
+const tocLinks = $$('.toc a');
+const secs = tocLinks.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(es => {
+    es.forEach(e => { if (e.isIntersecting) tocLinks.forEach(a => a.setAttribute('aria-current', a.getAttribute('href') === '#' + e.target.id ? 'true' : 'false')); });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  secs.forEach(s => io.observe(s));
+}
+
+/* ============================================================ start */
+const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+const withTimeout = Promise.race([fontsReady, new Promise(r => setTimeout(r, 2500))]);
+withTimeout.then(() => {
+  fitAll();
+  setPlaying(playing);
+  seek(t);
+  last = performance.now();
+  requestAnimationFrame(frame);
+  window.ready = true;
+});
+// refit when webfonts finish after the timeout
+if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => { fitAll(); seek(t); });
+})();
+</script>
+</body>
+</html>

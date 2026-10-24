@@ -619,20 +619,45 @@ sudo journalctl -u caddy -n 20 --no-pager   # บน S1: ดู source IP</scrip
           </tbody>
         </table>
       </div>
-      <h3>ตั้งค่า WSL สำหรับแล็บ (ไม่ลบข้อมูลเดิม)</h3>
-      <p>ทำครั้งเดียวตามลำดับ ถ้าขั้นไหนขึ้นข้อความ error ให้หยุดและอ่านข้อความก่อนทำต่อ</p>
-      <div class="note warn"><p><b>สำรองก่อนเสมอ:</b> ถ้ามี Ubuntu อยู่แล้วและไม่อยากเสียข้อมูล ให้สำรองก่อนทุกครั้ง ไม่ต้องลบ distro เดิมเพื่อทำแล็บ</p></div>
-      <script type="text/plain" class="code" data-title="PowerShell (Administrator): สำรอง Ubuntu เดิม (ทางเลือก)">wsl --export Ubuntu "$env:USERPROFILE\ubuntu-backup.tar"</script>
-      <script type="text/plain" class="code" data-title="Ubuntu: เปิด systemd และติดตั้ง SSH กับ UFW">sudo bash -c 'printf "[boot]\nsystemd=true\n" > /etc/wsl.conf'
-sudo apt update && sudo apt install -y openssh-server ufw curl
+      <h3>สคริปต์ล้างและติดตั้ง WSL2 ใหม่ (Mirrored Mode พร้อมซ้อมข้ามเครื่อง)</h3>
+      <p>แก้ปัญหาคนละเครื่องหา WSL ไม่เจอ โดยล้าง Ubuntu เดิม และตั้งค่าให้ WSL2 ใช้ IP เดียวกับ Wi-Fi/LAN ของเครื่อง Windows ผ่านโหมด <code>mirrored</code> (สำหรับ Windows 11 22H2 ขึ้นไป)</p>
+
+      <div class="note warn"><p><b>คำเตือน:</b> คำสั่ง <code>wsl --unregister Ubuntu</code> จะลบข้อมูลทั้งหมดใน Ubuntu เดิมอย่างถาวร หากมีไฟล์สำคัญให้สำรองไว้ก่อนด้วย <code>wsl --export Ubuntu "$env:USERPROFILE\ubuntu-backup.tar"</code></p></div>
+
+      <script type="text/plain" class="code" data-title="ขั้นที่ 1: PowerShell (Administrator) - ล้างและติดตั้งใหม่พร้อม Mirrored">[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+wsl --shutdown
+wsl --unregister Ubuntu
+
+$wslConfig = @"
+[wsl2]
+networkingMode=mirrored
+dnsTunneling=true
+firewall=true
+autoProxy=true
+"@
+Set-Content -Path "$env:USERPROFILE\.wslconfig" -Value $wslConfig -Encoding UTF8
+
+Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
+netsh advfirewall firewall add rule name="WSL SSH 22" dir=in action=allow protocol=TCP localport=22
+netsh advfirewall firewall add rule name="WSL Caddy 80" dir=in action=allow protocol=TCP localport=80
+netsh advfirewall firewall add rule name="WSL WireGuard UDP" dir=in action=allow protocol=UDP localport=1-65535
+
+wsl --install -d Ubuntu</script>
+
+      <p>เมื่อติดตั้ง Ubuntu เสร็จแล้ว ให้สร้าง username/password ตามปกติ แล้วรันคำสั่งด้านล่างนี้ใน Terminal ของ Ubuntu เพื่อเปิดใช้งาน <code>systemd</code> และ Service SSH:</p>
+
+      <script type="text/plain" class="code" data-title="ขั้นที่ 2: ใน Ubuntu - เปิด systemd และเริ่ม Service SSH">sudo bash -c 'cat > /etc/wsl.conf << EOF
+[boot]
+systemd=true
+EOF'
+sudo apt update && sudo apt install -y openssh-server curl ufw
 sudo systemctl enable --now ssh
-hostname -I</script>
-      <script type="text/plain" class="code" data-title="PowerShell (Administrator): รีสตาร์ท WSL เพื่อให้ systemd ทำงาน">wsl --shutdown</script>
-      <script type="text/plain" class="code" data-title="PowerShell (Administrator): เปิดเฉพาะพอร์ตแล็บ ในเครือข่ายส่วนตัวเท่านั้น">New-NetFirewallRule -DisplayName "Lab SSH 22" -Direction Inbound -Protocol TCP -LocalPort 22 -Profile Private -RemoteAddress LocalSubnet -Action Allow
-New-NetFirewallRule -DisplayName "Lab HTTP 80" -Direction Inbound -Protocol TCP -LocalPort 80 -Profile Private -RemoteAddress LocalSubnet -Action Allow
-New-NetFirewallRule -DisplayName "Lab WireGuard" -Direction Inbound -Protocol UDP -LocalPort <WG_PORT> -Profile Private -RemoteAddress LocalSubnet -Action Allow</script>
-      <p>กฎ firewall ข้างบนเปิดเฉพาะพอร์ตที่โจทย์ใช้ ในเครือข่ายส่วนตัวและ IP วงเดียวกันเท่านั้น ไม่เปิดพอร์ตทั้งหมด ถ้าไม่ต้องการ ให้ลบด้วย <code>Remove-NetFirewallRule -DisplayName "Lab SSH 22"</code> (และชื่ออื่น)</p>
-      <div class="note warn"><p><b>ยังไม่ได้ทดสอบ:</b> โหมด mirrored ไม่ได้อยู่ในขั้นตอนนี้ ขั้นตอนนี้ตั้ง systemd และ firewall เท่านั้น ถ้าต้องการเชื่อมต่อจากเครื่องอื่นในวงแลน ให้ทดสอบด้วย <code>ping</code> ก่อน และถ้า Wi-Fi บล็อก ให้ใช้ hotspot</p></div>
+echo "IP ของเครื่องนี้คือ: $(hostname -I)"</script>
+
+      <script type="text/plain" class="code" data-title="ขั้นที่ 3: PowerShell (Administrator) - รีสตาร์ท WSL ให้ Mirrored มีผล">wsl --shutdown</script>
+
+      <div class="note ok"><p><b>หลังจากเปิด Ubuntu ขึ้นมาใหม่:</b> เมื่อพิมพ์ <code>hostname -I</code> จะได้เลข IP วงเดียวกับ Wi-Fi/LAN ของเครื่อง Windows (เช่น <code>192.168.x.x</code>) เครื่อง Client จะสามารถ <code>ssh-copy-id</code> และยิงหาพอร์ต 22/80/WireGuard ข้ามเครื่องได้ทันที</p></div>
+      <p><b>ข้อควรระวัง:</b> หากต่อ Wi-Fi หอพักหรือมหาวิทยาลัยมักมี AP Isolation บล็อกการคุยกัน ให้ต่อสาย LAN เดียวกัน หรือแชร์ Hotspot จากมือถือให้ทุกเครื่องต่อวงเดียวกัน แล้วทดสอบด้วย <code>ping</code> ก่อนเริ่มซ้อม</p>
 
       <h3>ผลที่ทดสอบจริงกับ WSL2 (24 ต.ค. 2026)</h3>
       <ul>
@@ -641,19 +666,7 @@ New-NetFirewallRule -DisplayName "Lab WireGuard" -Direction Inbound -Protocol UD
         <li>VM ของ WSL หยุดเองได้ เมื่อหยุด bridge กับ container จะหายและต้องสร้างใหม่</li>
       </ul>
       <div class="note warn"><p><b>ต่างจากเครื่องสอบจริง:</b> ชื่อ interface (ในแล็บคือ <code>host0</code> เครื่องจริงมักเป็น <code>eth0</code> หรือ <code>ens33</code>), <code>sudo</code> จะถามรหัสผ่าน, ssh ถามยืนยัน fingerprint ครั้งแรก และ <code>ufw enable</code> ถามให้พิมพ์ y ซึ่งแล็บข้ามหมด ให้ฝึกพิมพ์เองตามโจทย์ให้ชิน</p></div>
-      <details>
-        <summary>วิธีเดิมที่ตั้ง WSL mirrored และเปิด firewall (ยังไม่ได้ทดสอบ)</summary>
-        <div>
-          <script type="text/plain" class="code" data-title="C:\Users\<ชื่อ>\.wslconfig">[wsl2]
-networkingMode=mirrored</script>
-          <script type="text/plain" class="code" data-title="ใน WSL: /etc/wsl.conf">[boot]
-systemd=true</script>
-          <p>หลังแก้ให้รัน <code>wsl --shutdown</code> ใน PowerShell แล้วเปิด WSL ใหม่ ถ้าต้องการให้ LAN เข้า WSL ได้ ให้รันคำสั่งนี้ใน PowerShell แบบ Administrator</p>
-          <script type="text/plain" class="code" data-title="Windows (Administrator)">Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow</script>
-          <p>Wi-Fi ของมหาลัยหรือหอมักบล็อกการคุยกันระหว่างเครื่อง (client isolation) และ Bridged บน Wi-Fi อาจไม่ทำงาน ใช้สาย LAN เดียวกัน หรือเปิด hotspot จากมือถือให้ทั้ง 3 เครื่องต่อ และทดสอบด้วย <code>ping</code> ก่อนเริ่มซ้อม</p>
-        </div>
-      </details>
-    </section>
+      </section>
 
     <section class="block" id="changes">
       <h2>แก้อะไรไปบ้างจากไฟล์เดิม</h2>

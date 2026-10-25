@@ -1015,7 +1015,7 @@ const PHASES = [
     c: 'ping -c2 10.8.0.1\ncurl -s http://<S1_IP>/   # เห็น TOKEN', s: 'ดูตอน: Step 7 (Path A)', j: '#step7' },
   { t: 'Path B: เข้าเว็บผ่าน SSH SOCKS',
     b: 'ปิด WireGuard ก่อน แล้วเปิดอุโมงค์ SSH แบบ dynamic (ssh -D) ซึ่งทำให้ Client มี SOCKS proxy ที่ 127.0.0.1:1080 เมื่อ curl ส่งคำขอผ่าน proxy นี้ คำขอจะไปทาง SSH จนถึง S2 แล้ว S2 เป็นฝ่ายเชื่อมต่อไปที่ S1 เอง ต้นทางที่ S1 เห็นจึงเป็น S2_IP เหมือนกับ path A',
-    c: 'sudo wg-quick down wg0\nssh -N -D 1080 peter@<S2_IP> &\ncurl --socks5-hostname 127.0.0.1:1080 http://<S1_IP>/', s: 'ดูตอน: Step 7 (Path B)', j: '#step7' },
+    c: 'sudo wg-quick down wg0\nssh -f -N -D 1080 peter@<S2_IP>\ncurl --socks5-hostname 127.0.0.1:1080 http://<S1_IP>/', s: 'ดูตอน: Step 7 (Path B)', j: '#step7' },
   { t: 'ตรวจ log: S1 ต้องเห็นแต่ S2',
     b: 'log ของ Caddy ต้องมี remote_ip เป็น S2_IP ทั้ง path A และ path B และต้องไม่มี Client_IP เลย เพราะคำขอตรงจาก Client ถูก UFW ทิ้งก่อนไปถึง Caddy นี่คือหลักฐานว่าทางเข้า S1 มีแค่ผ่าน S2 จากนั้นแอนิเมชันจะวนกลับไปเริ่มใหม่',
     c: 'sudo journalctl -u caddy --no-pager | grep remote_ip', s: 'ดูตอน: Step 7 (log)', j: '#step7' }

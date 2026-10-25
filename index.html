@@ -803,10 +803,10 @@ sudo wg show                 # ต้องมี handshake ล่าสุด
 ping -c2 10.8.0.1
 curl -s http://<S1_IP>/      # ต้องเห็น TOKEN</script>
       <script type="text/plain" class="code" data-title="Path B: SSH SOCKS (ปิด WG ก่อน)">sudo wg-quick down wg0
-ip link show wg0             # ต้อง error = ไม่มี interface
-ssh -N -D 1080 peter@<S2_IP> &
+ip link show wg0                  # ต้อง error = ไม่มี interface
+ssh -f -N -D 1080 peter@<S2_IP>   # ใช้ -f เพื่อรอรับ passphrase ก่อนส่งไป background
 curl --socks5-hostname 127.0.0.1:1080 http://<S1_IP>/
-kill %1                      # ปิด tunnel (ใช้ได้ใน shell แบบ interactive)</script>
+pkill -f "ssh.*1080"              # ปิด tunnel เมื่อทดสอบเสร็จ</script>
       <script type="text/plain" class="code" data-title="Negative test, port scan และ log (WG ยังปิดอยู่)">curl -m 5 http://<S1_IP>/; echo $?          # ต้องได้ 28
 nc -zv -w2 <S2_IP> 22 80 443 1080           # เปิดเฉพาะ 22
 sudo journalctl -u caddy -n 20 --no-pager   # บน S1: ดู source IP</script>
@@ -1292,16 +1292,18 @@ function escapeHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/
 function formatCodeDisplay(raw, params) {
   let escaped = escapeHtml(raw);
   escaped = escaped.replace(/(^|\s)(#[^\n]*)/gm, (m, a, b) => a + '<span class="cm">' + b + '</span>');
+  // 1. Highlight generic placeholders first
+  escaped = escaped.replace(/(&lt;(?:[A-Z][A-Z0-9_]*|[^&\n]{0,30}[฀-๿][^&\n]{0,30})&gt;)/g, '<span class="ph">$1</span>');
+  // 2. Substitute known PARAM_KEYS
   PARAM_KEYS.forEach(k => {
-    const target = '&lt;' + k + '&gt;';
+    const target1 = '<span class="ph">&lt;' + k + '&gt;</span>';
+    const target2 = '&lt;' + k + '&gt;';
     const val = params[k];
     if (val && String(val).trim()) {
-      escaped = escaped.replaceAll(target, '<span class="ph set" title="แทนค่าจาก &lt;' + k + '&gt;">' + escapeHtml(String(val).trim()) + '</span>');
-    } else {
-      escaped = escaped.replaceAll(target, '<span class="ph">&lt;' + k + '&gt;</span>');
+      const rep = '<span class="ph set" title="แทนค่าจาก ' + k + '">' + escapeHtml(String(val).trim()) + '</span>';
+      escaped = escaped.replaceAll(target1, rep).replaceAll(target2, rep);
     }
   });
-  escaped = escaped.replace(/(&lt;(?:[A-Z][A-Z0-9_]*|[^&\n]{0,30}[฀-๿][^&\n]{0,30})&gt;)/g, '<span class="ph">$1</span>');
   return escaped;
 }
 

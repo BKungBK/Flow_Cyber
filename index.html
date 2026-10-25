@@ -720,7 +720,7 @@ umask 077
 wg genkey | sudo tee /etc/wireguard/server.key | wg pubkey | sudo tee /etc/wireguard/server.pub
 IFACE=$(ip route get <S1_IP> | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}')
 SERVER_KEY=$(sudo cat /etc/wireguard/server.key)
-CLIENT_PUB=$(cat ~/client.pub)
+CLIENT_PUB=$(cat ~/client.pub 2>/dev/null || sudo cat /home/peter/client.pub 2>/dev/null || sudo cat /home/ubuntu/client.pub 2>/dev/null)
 sudo tee /etc/wireguard/wg0.conf > /dev/null <<EOF
 [Interface]
 Address = 10.8.0.1/24
@@ -737,7 +737,7 @@ sudo chmod 600 /etc/wireguard/wg0.conf
 echo 'net.ipv4.ip_forward=1' | sudo tee /etc/sysctl.d/99-wg.conf
 sudo sysctl --system
 sudo systemctl enable --now wg-quick@wg0
-sudo cp /etc/wireguard/server.pub ~/server.pub && sudo chown "$USER": ~/server.pub   # ไว้ให้ Client ดึงไปใช้ใน Step 6</script>
+sudo cp /etc/wireguard/server.pub /home/peter/server.pub 2>/dev/null; sudo cp /etc/wireguard/server.pub ~/server.pub 2>/dev/null; sudo chmod 644 /home/peter/server.pub ~/server.pub 2>/dev/null   # ไว้ให้ Client ดึงไปใช้ใน Step 6</script>
       <dl class="expect">
         <dt class="good">ต้องเห็น</dt><dd><code>sudo wg show</code> มี interface <code>wg0</code> พร้อม listening port ตรงกับ <code>&lt;WG_PORT&gt;</code>, <code>ip link show wg0</code> เจอ interface และ <code>sudo iptables -t nat -S POSTROUTING</code> มีกฎ <code>MASQUERADE</code> ของ <code>10.8.0.0/24</code> ไป <code>&lt;S1_IP&gt;</code></dd>
         <dt class="bad">พลาดบ่อย</dt><dd>ใช้ <code>&lt;&lt;EOF</code> แบบไม่มีเครื่องหมายคำพูด เพื่อให้ shell แทนค่า <code>$SERVER_KEY</code>, <code>$CLIENT_PUB</code>, <code>$IFACE</code> ให้เอง (ไม่ต้องก๊อปคีย์ด้วยมือ) และใส่ <code>&gt; /dev/null</code> เพื่อไม่ให้ <code>tee</code> พิมพ์ private key ขึ้นจอ ห้ามใช้พอร์ต 51820 ถ้าอาจารย์ไม่ระบุ</dd>

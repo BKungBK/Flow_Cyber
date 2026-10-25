@@ -530,6 +530,7 @@ code .ph-inline-set {
     <a href="#careful">สิ่งที่ต้องระวัง</a>
     <a href="#qa">เตรียมตอบรายบุคคล</a>
     <a href="#wsl">ซ้อมด้วย Windows</a>
+    <a href="#reset">ล้างค่าเริ่มซ้อมใหม่ (Reset)</a>
     <a href="#changes">แก้อะไรไปบ้าง</a>
   </nav>
 
@@ -891,6 +892,70 @@ ping -c 3 <S2_IP></script>
           </ul>
         </div>
       </details>
+    </section>
+
+    <!-- ===================== RESET LAB ===================== -->
+    <section class="block" id="reset">
+      <h2>ล้างค่าเพื่อเริ่มซ้อมใหม่ (Clean Reset &amp; ปลดล็อก SSH)</h2>
+      <p>เมื่อซ้อมเสร็จ 1 รอบ หรือทำผิดพลาดแล้วต้องการเคลียร์การตั้งค่าทั้งหมดให้กลับสู่จุดเริ่มต้น เพื่อฝึกซ้ำตั้งแต่ Step 1 ถึง 7 โดยไม่ต้องติดตั้ง Ubuntu ใหม่</p>
+
+      <div class="note err">
+        <p><b>⚠️ ทำไมรีเซ็ต/รีบูต VM แล้ว SSH เข้าด้วย <code>ubuntu</code> หรือ <code>admin</code> ไม่ได้? (Permission denied)</b></p>
+        <p>เพราะใน <b>Step 2</b> เราได้เปิดใช้ SSH Hardening: <code>AllowUsers peter</code> และ <code>PasswordAuthentication no</code> ไว้ใน <code>/etc/ssh/sshd_config.d/</code> ทำให้ระบบปฏิเสธ user อื่นทั้งหมด และไม่รับรหัสผ่านผ่าน SSH</p>
+      </div>
+
+      <h3>วิธีแก้ด่วน: ปลดล็อก SSH ให้กลับมาเข้าได้ตามปกติ</h3>
+      <p>หากถูกล็อก ไม่ต้องตกใจ! ให้ไปที่<b>หน้าต่าง Console ของ VM โดยตรง</b> (หน้าจอดำใน VirtualBox/VMware ที่ไม่ใช่ผ่าน SSH) ล็อกอินด้วยบัญชีเริ่มต้น (<code>ubuntu</code> หรือ <code>admin</code>) แล้วรันคำสั่งบรรทัดนี้:</p>
+      <script type="text/plain" class="code" data-title="รันบนหน้าจอ VM Console (S1 และ S2)">sudo rm -f /etc/ssh/sshd_config.d/* && sudo systemctl restart ssh</script>
+      <p>เมื่อรันเสร็จ SSH จะกลับมารองรับ password authentication และอนุญาตให้ทุก user ล็อกอินจากเครื่องจริงภายนอกได้ทันที</p>
+
+      <h3>คำสั่งล้างค่าเพื่อเริ่มซ้อมใหม่หมดจด (Clean Purge)</h3>
+      <p>คัดลอกคำสั่งไปวางในเครื่องแต่ละเครื่อง เพื่อลบ config เก่าออกทั้งหมด:</p>
+
+      <script type="text/plain" class="code" data-title="1. S1 (ล้าง SSH, UFW, Caddy, Peter)"># ปลดล็อก SSH คืนค่าเดิม
+sudo rm -f /etc/ssh/sshd_config.d/* && sudo systemctl restart ssh
+
+# รีเซ็ต UFW ปิด firewall ทั้งหมด
+sudo ufw --force reset && sudo ufw disable
+
+# หยุด Caddy และลบโฟลเดอร์เว็บ exam
+sudo systemctl stop caddy
+sudo rm -rf /var/www/exam
+
+# ลบ user peter พร้อม home directory
+sudo deluser --remove-home peter 2>/dev/null</script>
+
+      <script type="text/plain" class="code" data-title="2. S2 (ล้าง SSH, UFW, WireGuard, IP Forward, Peter)"># ปลดล็อก SSH คืนค่าเดิม
+sudo rm -f /etc/ssh/sshd_config.d/* && sudo systemctl restart ssh
+
+# รีเซ็ต UFW ปิด firewall ทั้งหมด
+sudo ufw --force reset && sudo ufw disable
+
+# ปิด WireGuard และลบ config + key
+sudo systemctl disable --now wg-quick@wg0 2>/dev/null
+sudo rm -rf /etc/wireguard/*
+
+# ปิด IP Forwarding คืนค่าระบบเดิม
+sudo sysctl -w net.ipv4.ip_forward=0
+sudo sed -i '/net.ipv4.ip_forward=1/d' /etc/sysctl.conf
+
+# ลบ user peter พร้อม home directory
+sudo deluser --remove-home peter 2>/dev/null</script>
+
+      <script type="text/plain" class="code" data-title="3. Client (ล้าง WireGuard, SOCKS process, SSH key)"># ปิดอุโมงค์ WireGuard และลบ config + key
+sudo wg-quick down wg0 2>/dev/null
+sudo rm -rf /etc/wireguard/* ~/wg
+
+# ฆ่า process SSH SOCKS proxy ที่เปิดค้างไว้เบื้องหลัง
+pkill -f "ssh.*1080" 2>/dev/null
+
+# ลบ SSH key เก่าที่เจนไว้ (ถ้าต้องการเริ่มสร้างใหม่หมดตั้งแต่ Step 1)
+rm -f ~/.ssh/id_ed25519 ~/.ssh/id_ed25519.pub</script>
+
+      <div class="note ok">
+        <p><b>💡 เทคนิคแนะนำสำหรับการซ้อม: ใช้ Snapshot ใน VirtualBox</b></p>
+        <p>หลังจากติดตั้ง Ubuntu Server และรันคำสั่งลงแพ็กเกจเบื้องต้นครบทั้ง 3 เครื่องแล้ว ให้กด <b>Take Snapshot</b> (ตั้งชื่อเช่น <code>Base-Clean</code>) ไว้ใน VirtualBox เมื่อซ้อมเสร็จหรือทำผิดพลาดจนแก้ไม่ตก เพียงแค่กด <b>Restore Snapshot</b> ย้อนกลับมา เครื่องจะกลับมาเหมือนใหม่ในเวลาไม่เกิน 5 วินาที โดยไม่ต้องพิมพ์คำสั่งล้างค่าเองเลย</p>
+      </div>
     </section>
 
     <section class="block" id="changes">
